@@ -151,6 +151,9 @@ def main(opt, device_id):
     trainer = build_trainer(
         opt, device_id, model, fields, optim, model_saver=model_saver)
 
+    for k,v in opt.__dict__.items():
+        trainer.report_manager.tensorboard_writer.add_text(k, str(v), 0)
+
     train_iter = build_dataset_iter("train", fields, opt)
     valid_iter = build_dataset_iter(
         "valid", fields, opt, is_train=False)

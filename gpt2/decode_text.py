@@ -1,6 +1,6 @@
 import argparse
 
-from pytorch_pretrained_bert import GPT2Tokenizer
+from transformers import GPT2Tokenizer
 
 parser = argparse.ArgumentParser()
 parser.add_argument('--src', '-src', type=str)
