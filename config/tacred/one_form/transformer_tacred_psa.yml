@@ -1,11 +1,12 @@
-data: data/tacred/one_form/TACRED_BPETGT
+data: data/tacred/TACRED_BPETGT
 save_checkpoint_steps: 50
 keep_checkpoint: 5
 seed: 123
-warmup_steps: 50
-train_steps: 250
-valid_steps: 4
+warmup_steps: 100
+train_steps: 1000
+valid_steps: 50
 report_every: 1
+early_stopping: 2
 
 decoder_type: transformer
 encoder_type: rnn
