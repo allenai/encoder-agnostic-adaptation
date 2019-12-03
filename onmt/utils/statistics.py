@@ -95,6 +95,8 @@ class Statistics(object):
 
     def first_4_accuracy(self):
         """ compute accuracy for first 4 words"""
+        if self.n_non_padding_first_4 == 0:
+            return 0
         return 100 * (self.n_correct_of_first_4 / self.n_non_padding_first_4)
 
     def xent(self):
@@ -122,10 +124,11 @@ class Statistics(object):
         if num_steps > 0:
             step_fmt = "%s/%5d" % (step_fmt, num_steps)
         logger.info(
-                ("Step %s; acc: %6.2f; ppl: %5.2f; xent: %4.3f; " +
+                ("Step %s; acc: %6.2f; first_4_acc: %6.2f; ppl: %5.2f; xent: %4.3f; " +
              "lr: %7.5f; %3.0f/%3.0f tok/s; %6.0f sec")
             % (step_fmt,
                self.accuracy(),
+               self.first_4_accuracy(),
                self.ppl(),
                self.xent(),
                learning_rate,

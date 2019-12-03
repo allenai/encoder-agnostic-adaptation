@@ -289,7 +289,7 @@ class FirstFourLossCompute(NMTLossCompute):
 
         src_lengths = batch.src[1]
         max_length = batch.tgt.size(0) - 1
-        first_tokens_to_check_masking = torch.arange(max_length).unsqueeze(0) < src_lengths.unsqueeze(1)
+        first_tokens_to_check_masking = torch.arange(max_length, device=src_lengths.device).unsqueeze(0) < src_lengths.unsqueeze(1)
         num_correct_of_first_4 = pred.eq(target.view(-1)).masked_select(first_tokens_to_check_masking.view(-1)).sum().item()
         return onmt.utils.Statistics(loss.item(), num_non_padding, num_correct, num_correct_of_first_4, first_tokens_to_check_masking.sum().item())
 
