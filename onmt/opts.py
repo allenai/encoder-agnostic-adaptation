@@ -578,6 +578,8 @@ def train_opts(parser):
               help="Step for moving average. "
                    "Default is every update, "
                    "if -average_decay is set.")
+    group.add('--first_4', '-first_4', action='store_true',
+              help="If true, reports accuracy over 4 first tokens.")
 
     # learning rate
     group = parser.add_argument_group('Optimization- Rate')
@@ -605,7 +607,7 @@ def train_opts(parser):
     group.add('--warmup_init_factor', '-warmup_init_factor', type=int, default=5000,
               help="Ratio of max lr to initial lr for invsq decay scheme.")
     group.add('--disc_ft', '-disc_ft', type=float, default=-1,
-              help="Scale factor for discriminative fine-tuning.")
+              help="Scale factor for discriminative fine-tuning.") # I think is lowering the lr whenever we're going down the network
     group.add('--dec_lr_factor', '-dec_lr_factor', type=float, default=1.0,
               help="How much lower lr is for decoder, if using disc_ft.")
     group.add('--full_gen_bias', '-full_gen_bias', action='store_true',

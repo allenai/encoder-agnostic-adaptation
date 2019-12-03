@@ -44,6 +44,21 @@ class PPLScorer(Scorer):
         return stats.ppl()
 
 
+class XENTScorer(Scorer):
+
+    def __init__(self):
+        super(XENTScorer, self).__init__(float("inf"), "xent")
+
+    def is_improving(self, stats):
+        return stats.xent() < self.best_score
+
+    def is_decreasing(self, stats):
+        return stats.xent() > self.best_score
+
+    def _caller(self, stats):
+        return stats.xent()
+
+
 class AccuracyScorer(Scorer):
 
     def __init__(self):
@@ -64,7 +79,8 @@ DEFAULT_SCORERS = [PPLScorer(), AccuracyScorer()]
 
 SCORER_BUILDER = {
     "ppl": PPLScorer,
-    "accuracy": AccuracyScorer
+    "accuracy": AccuracyScorer,
+    "xent": XENTScorer
 }
 
 

@@ -1,4 +1,4 @@
-data: data/tacred/truncate_noise/TACRED_BPETGT
+data: data/tacred/first_4/TACRED_BPE
 save_checkpoint_steps: 50
 keep_checkpoint: 5
 seed: 123

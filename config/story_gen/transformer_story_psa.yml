@@ -26,8 +26,8 @@ decay_method: invsq
 learning_rate: 0.0005
 warmup_init_factor: 5000
 max_grad_norm: 0.0
-dec_lr_factor: 1.5
 disc_ft: 1.1
+dec_lr_factor: 1.5
 
 batch_size: 2048
 valid_batch_size: 4

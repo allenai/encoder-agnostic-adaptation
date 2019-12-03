@@ -56,6 +56,8 @@ def build_loss_compute(model, tgt_field, opt, train=True, **kwargs):
         )
     elif opt.simple_fusion:
         compute = SimpleFusionLossCompute(criterion, loss_gen)
+    elif opt.first_4:
+        compute = FirstFourLossCompute(criterion, loss_gen)
     else:
         compute = NMTLossCompute(criterion, loss_gen)
     compute.to(device)
@@ -257,6 +259,39 @@ class NMTLossCompute(LossComputeBase):
         stats = self._stats(loss.clone(), scores, gtruth)
 
         return loss, stats
+
+class FirstFourLossCompute(NMTLossCompute):
+
+    def _compute_loss(self, batch, output, target):
+        bottled_output = self._bottle(output)
+
+        scores = self.generator(bottled_output)
+        gtruth = target.view(-1)
+
+        loss = self.criterion(scores, gtruth)
+        stats = self._stats(loss.clone(), scores, target, batch)
+        return loss, stats
+
+    def _stats(self, loss, scores, target, batch):
+        """
+        Args:
+            loss (:obj:`FloatTensor`): the loss computed by the loss criterion.
+            scores (:obj:`FloatTensor`): a score for each possible output
+            target (:obj:`FloatTensor`): true targets
+
+        Returns:
+            :obj:`onmt.utils.Statistics` : statistics for this batch.
+        """
+        pred = scores.max(1)[1]
+        non_padding = target.view(-1).ne(self.padding_idx)
+        num_correct = pred.eq(target.view(-1)).masked_select(non_padding).sum().item()
+        num_non_padding = non_padding.sum().item()
+
+        src_lengths = batch.src[1]
+        max_length = batch.tgt.size(0) - 1
+        first_tokens_to_check_masking = torch.arange(max_length).unsqueeze(0) < src_lengths.unsqueeze(1)
+        num_correct_of_first_4 = pred.eq(target.view(-1)).masked_select(first_tokens_to_check_masking.view(-1)).sum().item()
+        return onmt.utils.Statistics(loss.item(), num_non_padding, num_correct, num_correct_of_first_4, first_tokens_to_check_masking.sum().item())
 
 
 class SimpleFusionLossCompute(LossComputeBase):

@@ -128,6 +128,19 @@ def count_features(path):
 
 
 def main(opt):
+    # import random
+    # if opt.shuffle == 1:
+    #     for src_path, tgt_path in [(opt.train_src, opt.train_tgt), (opt.valid_src, opt.valid_tgt)]:
+    #         with open(src_path, 'r') as f: src_lines = f.readlines()
+    #         with open(tgt_path, 'r') as f: tgt_lines = f.readlines()
+    #         with open(src_path+".unshuffled", 'w') as f: f.write(''.join(src_lines))
+    #         with open(tgt_path+".unshuffled", 'w') as f: f.write(''.join(tgt_lines))
+    #         combined = list(zip(src_lines, tgt_lines))
+    #         random.shuffle(combined)
+    #         src_lines[:], tgt_lines[:] = zip(*combined)
+    #         with open(src_path, 'w') as f: f.write(''.join(src_lines))
+    #         with open(tgt_path, 'w') as f: f.write(''.join(tgt_lines))
+
     ArgumentParser.validate_preprocess_args(opt)
     torch.manual_seed(opt.seed)
     check_existing_pt_files(opt)

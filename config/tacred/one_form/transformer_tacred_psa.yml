@@ -1,4 +1,4 @@
-data: data/tacred/TACRED_BPETGT
+data: data/tacred/first_4/TACRED_BPE
 save_checkpoint_steps: 50
 keep_checkpoint: 5
 seed: 123
@@ -33,7 +33,8 @@ normalization: tokens
 dropout: 0.1
 label_smoothing: 0.1
 
-max_generator_batches: 2
+# max_generator_batches: 2
+max_generator_batches: 0
 
 param_init: 0.0
 param_init_glorot: 'true'
@@ -43,6 +44,4 @@ position_encoding_ctxsize: 1024
 share_decoder_embeddings: 'true'
 
 world_size: 1
-gpu_ranks:
-- 0
 tensorboard: 'true'

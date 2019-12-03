@@ -138,6 +138,9 @@ class ArgumentParser(cfargparse.ArgumentParser):
         if opt.train_from and opt.load_uncond_from:
             raise AssertionError('Only one of train_from, load_uncond_from makes sense')
 
+        if opt.first_4 and opt.max_generator_batches != 0:
+            raise AssertionError('Can evaluate first 4 in a max_generator_batches != 0 config, \
+                  This is a problem with sharding.')
 
     @classmethod
     def validate_translate_opts(cls, opt):

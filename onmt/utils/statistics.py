@@ -17,10 +17,12 @@ class Statistics(object):
     * elapsed time
     """
 
-    def __init__(self, loss=0, n_words=0, n_correct=0):
+    def __init__(self, loss=0, n_words=0, n_correct=0, n_correct_of_first_4=0, n_non_padding_first_4=0):
         self.loss = loss
         self.n_words = n_words
         self.n_correct = n_correct
+        self.n_correct_of_first_4 = n_correct_of_first_4
+        self.n_non_padding_first_4 = n_non_padding_first_4
         self.n_src_words = 0
         self.start_time = time.time()
 
@@ -81,6 +83,8 @@ class Statistics(object):
         self.loss += stat.loss
         self.n_words += stat.n_words
         self.n_correct += stat.n_correct
+        self.n_correct_of_first_4 += stat.n_correct_of_first_4
+        self.n_non_padding_first_4 += stat.n_non_padding_first_4
 
         if update_n_src_words:
             self.n_src_words += stat.n_src_words
@@ -88,6 +92,10 @@ class Statistics(object):
     def accuracy(self):
         """ compute accuracy """
         return 100 * (self.n_correct / self.n_words)
+
+    def first_4_accuracy(self):
+        """ compute accuracy for first 4 words"""
+        return 100 * (self.n_correct_of_first_4 / self.n_non_padding_first_4)
 
     def xent(self):
         """ compute cross entropy """
@@ -132,5 +140,7 @@ class Statistics(object):
         writer.add_scalar(prefix + "/xent", self.xent(), step)
         writer.add_scalar(prefix + "/ppl", self.ppl(), step)
         writer.add_scalar(prefix + "/accuracy", self.accuracy(), step)
+        if self.n_non_padding_first_4 > 0:
+            writer.add_scalar(prefix + "/first_4_accuracy", self.first_4_accuracy(), step)
         writer.add_scalar(prefix + "/tgtper", self.n_words / t, step)
         writer.add_scalar(prefix + "/lr", learning_rate, step)
