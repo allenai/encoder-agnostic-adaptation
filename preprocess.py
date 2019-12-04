@@ -28,29 +28,40 @@ def check_existing_pt_files(opt):
             sys.exit(1)
 
 
-def build_save_dataset(corpus_type, fields, src_reader, tgt_reader, opt):
+def build_save_dataset(corpus_type, fields, readers_list, opt):
     assert corpus_type in ['train', 'valid']
 
     if corpus_type == 'train':
         src = opt.train_src
+        src2 = opt.train_src2
         tgt = opt.train_tgt
         pointers_file = opt.pointers_file
     else:
         src = opt.valid_src
+        src2 = opt.valid_src2
         tgt = opt.valid_tgt
         pointers_file = None
 
     logger.info("Reading source and target files: %s %s." % (src, tgt))
     
     tgt_shards = split_corpus(tgt, opt.shard_size)
-    if opt.data_type == 'imgvec':
-        assert opt.shard_size <= 0
-        src_shards = [src]
-    elif opt.data_type == 'none':
-        src_shards = [None]*99999
+    def create_src_shards(src, opt):
+        if opt.data_type == 'imgvec':
+            assert opt.shard_size <= 0
+            return [src]
+        elif opt.data_type == 'none':
+            return [None]*99999
+        else:
+            return split_corpus(src, opt.shard_size)
+
+    src_shards = create_src_shards(src, opt)
+    src2_shards = create_src_shards(src2, opt)
+
+    if not src2:
+        shards = zip(src_shards, tgt_shards)
     else:
-        src_shards = split_corpus(src, opt.shard_size)
-    shard_pairs = zip(src_shards, tgt_shards)
+        shards = zip(src_shards, src2_shards, tgt_shards)
+
     dataset_paths = []
     if (corpus_type == "train" or opt.filter_valid) and tgt is not None:
         filter_pred = partial(
@@ -59,11 +70,19 @@ def build_save_dataset(corpus_type, fields, src_reader, tgt_reader, opt):
     else:
         filter_pred = None
 
-    for i, (src_shard, tgt_shard) in enumerate(shard_pairs):
+    for i, flat_shard in enumerate(shards):
+        if not src2:
+            src_shard, tgt_shard = flat_shard
+        else:
+            src_shard, src2_shard, tgt_shard = flat_shard
         assert opt.data_type in ['imgvec', 'none'] or len(src_shard) == len(tgt_shard)
         logger.info("Building shard %d." % i)
-
-        if src_reader and tgt_reader:
+        src_reader, tgt_reader = readers_list[0], readers_list[1]
+        if opt.allow_two_inputs and len(readers_list) == 3:
+            readers = readers_list
+            data = ([("src", src_shard), ("tgt", tgt_shard), ("src2", src2_shard)])
+            dirs = [opt.src_dir, None, None]
+        elif src_reader and tgt_reader:
             readers = [src_reader, tgt_reader]
             data = ([("src", src_shard), ("tgt", tgt_shard)])
             dirs = [opt.src_dir, None]
@@ -107,6 +126,7 @@ def build_save_vocab(train_dataset, fields, opt):
         train_dataset, fields, opt.data_type, opt.share_vocab,
         opt.src_vocab, opt.src_vocab_size, opt.src_words_min_frequency,
         opt.tgt_vocab, opt.tgt_vocab_size, opt.tgt_words_min_frequency,
+        opt.allow_two_inputs, opt.src2_vocab, opt.src2_vocab_size, opt.src2_words_min_frequency,
         fixed_vocab=opt.fixed_vocab,
         free_src=opt.free_src, free_tgt=opt.free_tgt,
         vocab_size_multiple=opt.vocab_size_multiple
@@ -193,21 +213,24 @@ def main(opt):
         tgt_unk=tgt_unk,
         tgt_bos=tgt_bos,
         tgt_eos=tgt_eos,
-        include_ptrs=opt.pointers_file is not None)
+        include_ptrs=opt.pointers_file is not None,
+        allow_two_inputs=opt.allow_two_inputs)
     
     if opt.data_type == 'none':
-        src_reader = None
+        readers = [None]
     else:
-        src_reader = inputters.str2reader[opt.data_type].from_opt(opt)
-    tgt_reader = inputters.str2reader["text"].from_opt(opt)
+        readers = [inputters.str2reader[opt.data_type].from_opt(opt)]
+    readers.append(inputters.str2reader["text"].from_opt(opt))
+    if opt.allow_two_inputs:
+        readers.append(inputters.str2reader["text"].from_opt(opt))
 
     logger.info("Building & saving training data...")
     train_dataset_files = build_save_dataset(
-        'train', fields, src_reader, tgt_reader, opt)
+        'train', fields, readers, opt)
 
     if (opt.valid_src or opt.data_type == 'none') and opt.valid_tgt:
         logger.info("Building & saving validation data...")
-        build_save_dataset('valid', fields, src_reader, tgt_reader, opt)
+        build_save_dataset('valid', fields, readers, opt)
 
     logger.info("Building & saving vocabulary...")
     build_save_vocab(train_dataset_files, fields, opt)

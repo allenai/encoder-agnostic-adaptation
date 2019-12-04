@@ -116,7 +116,13 @@ def main(opt, device_id):
         fields = vocab
 
     # Report src and tgt vocab sizes, including for features
-    sides = ['tgt'] if opt.model_type == 'none' else ['src', 'tgt']
+    if opt.model_type == 'none':
+        sides = ['tgt']
+    elif opt.include_agenda:
+        sides = ['src', 'tgt', 'src2']
+    else:
+        sides = ['src', 'tgt']
+
     for side in sides:
         f = fields[side]
         try:

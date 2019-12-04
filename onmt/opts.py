@@ -401,6 +401,19 @@ def preprocess_opts(parser):
               choices=[3, 1],
               help="Using grayscale image can training "
                    "model faster and smaller")
+    group.add('--allow_two_inputs', '-allow_two_inputs', action='store_true',
+              help="If true, allow_two_inputs.")
+    group.add('--train_src2', '-train_src2',
+              help="Path to the training source data")
+    group.add('--valid_src2', '-valid_src2',
+              help="Path to the validation source data")
+    group.add('--src2_vocab', '-src2_vocab', default="",
+              help="Path to an existing source vocabulary. Format: "
+                   "one word per line.")
+    group.add('--src2_vocab_size', '-src2_vocab_size', type=int, default=100000,
+              help="Size of the source vocabulary")
+    group.add('--src2_words_min_frequency',
+              '-src2_words_min_frequency', type=int, default=0)
 
 
 def train_opts(parser):
@@ -580,6 +593,8 @@ def train_opts(parser):
                    "if -average_decay is set.")
     group.add('--first_4', '-first_4', action='store_true',
               help="If true, reports accuracy over 4 first tokens.")
+    group.add('--include_agenda', '-include_agenda', action='store_true',
+              help="If true, assume agenda in src2.")
 
     # learning rate
     group = parser.add_argument_group('Optimization- Rate')

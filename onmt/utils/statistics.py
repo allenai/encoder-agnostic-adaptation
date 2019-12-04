@@ -17,12 +17,18 @@ class Statistics(object):
     * elapsed time
     """
 
-    def __init__(self, loss=0, n_words=0, n_correct=0, n_correct_of_first_4=0, n_non_padding_first_4=0):
+    def __init__(self, loss=0, n_words=0, n_correct=0,
+                n_correct_of_first_4=0,
+                n_non_padding_first_4=0,
+                n_correct_agenda=0,
+                n_non_padding_agenda=0):
         self.loss = loss
         self.n_words = n_words
         self.n_correct = n_correct
         self.n_correct_of_first_4 = n_correct_of_first_4
         self.n_non_padding_first_4 = n_non_padding_first_4
+        self.n_correct_agenda = n_correct_agenda
+        self.n_non_padding_agenda = n_non_padding_agenda
         self.n_src_words = 0
         self.start_time = time.time()
 
@@ -85,6 +91,8 @@ class Statistics(object):
         self.n_correct += stat.n_correct
         self.n_correct_of_first_4 += stat.n_correct_of_first_4
         self.n_non_padding_first_4 += stat.n_non_padding_first_4
+        self.n_correct_agenda += stat.n_correct_agenda
+        self.n_non_padding_agenda += stat.n_non_padding_agenda
 
         if update_n_src_words:
             self.n_src_words += stat.n_src_words
@@ -98,6 +106,12 @@ class Statistics(object):
         if self.n_non_padding_first_4 == 0:
             return 0
         return 100 * (self.n_correct_of_first_4 / self.n_non_padding_first_4)
+
+    def agenda_accuracy(self):
+        """ compute accuracy for first 4 words"""
+        if self.n_non_padding_agenda == 0:
+            return 0
+        return 100 * (self.n_correct_agenda / self.n_non_padding_agenda)
 
     def xent(self):
         """ compute cross entropy """
@@ -124,11 +138,12 @@ class Statistics(object):
         if num_steps > 0:
             step_fmt = "%s/%5d" % (step_fmt, num_steps)
         logger.info(
-                ("Step %s; acc: %6.2f; first_4_acc: %6.2f; ppl: %5.2f; xent: %4.3f; " +
+                ("Step %s; acc: %6.2f; first_4_acc: %6.2f; agenda_acc: %6.2f; ppl: %5.2f; xent: %4.3f; " +
              "lr: %7.5f; %3.0f/%3.0f tok/s; %6.0f sec")
             % (step_fmt,
                self.accuracy(),
                self.first_4_accuracy(),
+               self.agenda_accuracy(),
                self.ppl(),
                self.xent(),
                learning_rate,
@@ -145,5 +160,7 @@ class Statistics(object):
         writer.add_scalar(prefix + "/accuracy", self.accuracy(), step)
         if self.n_non_padding_first_4 > 0:
             writer.add_scalar(prefix + "/first_4_accuracy", self.first_4_accuracy(), step)
+        if self.n_non_padding_agenda > 0:
+            writer.add_scalar(prefix + "/agenda_accuracy", self.agenda_accuracy(), step)
         writer.add_scalar(prefix + "/tgtper", self.n_words / t, step)
         writer.add_scalar(prefix + "/lr", learning_rate, step)
