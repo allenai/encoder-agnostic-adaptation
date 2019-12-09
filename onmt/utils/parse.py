@@ -139,8 +139,8 @@ class ArgumentParser(cfargparse.ArgumentParser):
             raise AssertionError('Only one of train_from, load_uncond_from makes sense')
 
         if opt.first_4 and opt.max_generator_batches != 0:
-            raise AssertionError('Can evaluate first 4 in a max_generator_batches != 0 config, \
-                  This is a problem with sharding.')
+            raise AssertionError('Can evaluate first 4 in a max_generator_batches != 0 config, '
+                  'This is a problem with sharding.')
 
     @classmethod
     def validate_translate_opts(cls, opt):
@@ -167,5 +167,14 @@ class ArgumentParser(cfargparse.ArgumentParser):
 
         if opt.free_src and not opt.fixed_vocab:
             raise ValueError('free_src only makes sense when using fixed_vocab')
+
+        if opt.allow_two_inputs and (not opt.train_agenda or not opt.valid_agenda):
+            raise ValueError('Please pass train_agenda and valid_agenda paths for '
+                'allow_two_inputs configuration')
+
+        if opt.allow_two_inputs and \
+            not (opt.share_vocab or (opt.agenda_vocab == opt.tgt_vocab)):
+            raise ValueError('In order to evalute if got the correct tgt words it '
+                'needs to have the same vocab')
 
         assert not (opt.data_type == 'imgvec' and opt.shard_size > 0)

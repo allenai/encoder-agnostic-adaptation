@@ -50,12 +50,12 @@ class TestData(unittest.TestCase):
         src_reader = onmt.inputters.str2reader[opt.data_type].from_opt(opt)
         tgt_reader = onmt.inputters.str2reader["text"].from_opt(opt)
         train_data_files = preprocess.build_save_dataset(
-            'train', fields, src_reader, tgt_reader, opt)
+            'train', fields, [src_reader, tgt_reader], opt)
 
         preprocess.build_save_vocab(train_data_files, fields, opt)
 
         preprocess.build_save_dataset(
-            'valid', fields, src_reader, tgt_reader, opt)
+            'valid', fields, [src_reader, tgt_reader], opt)
 
         # Remove the generated *pt files.
         for pt in glob.glob(SAVE_DATA_PREFIX + '*.pt'):
