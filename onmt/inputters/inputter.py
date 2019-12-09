@@ -70,11 +70,11 @@ def make_pointer(data, vocab):
                 alignment[t[0]+1][i][t[k]] = 1  #+1 to accommodate bos
     return alignment
 
-
 def get_fields(
     src_data_type,
     n_src_feats,
     n_tgt_feats,
+    n_agenda_feats=0,
     src_pad='<blank>',
     src_unk='<unk>',
     tgt_pad='<blank>',
@@ -159,12 +159,12 @@ def get_fields(
 
     if allow_two_inputs:
         # Assuming type text
-        agenda_field_kwargs = {"n_feats": 0,
+        agenda_field_kwargs = {"n_feats": n_agenda_feats,
                               "include_lengths": True,
                               "pad": src_pad, "bos": None, "eos": None, "unk": src_unk,
                               "truncate": src_truncate,
-                              "base_name": "src2"}
-        fields["src2"] = fields_getters["text"](**agenda_field_kwargs)
+                              "base_name": "agenda"}
+        fields["agenda"] = fields_getters["text"](**agenda_field_kwargs)
 
     return fields
 
@@ -354,7 +354,7 @@ def _build_fv_from_multifield(multifield, counters, build_fv_args,
 def build_vocab(train_dataset_files, fields, data_type, share_vocab,
                 src_vocab_path, src_vocab_size, src_words_min_frequency,
                 tgt_vocab_path, tgt_vocab_size, tgt_words_min_frequency,
-                allow_two_inputs, src2_vocab_path, src2_vocab_size, src2_words_min_frequency,
+                allow_two_inputs, agenda_vocab_path, agenda_vocab_size, agenda_words_min_frequency,
                 fixed_vocab=False, free_src=False, free_tgt=False, vocab_size_multiple=1):
     """Build the fields for all data sides.
 
@@ -390,11 +390,11 @@ def build_vocab(train_dataset_files, fields, data_type, share_vocab,
     else:
         src_vocab = None
 
-    if allow_two_inputs and src2_vocab_path:
-        src2_vocab, src2_vocab_size = _load_vocab(
-            src2_vocab_path, "src2", counters)
+    if allow_two_inputs and agenda_vocab_path:
+        agenda_vocab, agenda_vocab_size = _load_vocab(
+            agenda_vocab_path, "agenda", counters)
     else:
-        src2_vocab = None
+        agenda_vocab = None
 
     if tgt_vocab_path:
         tgt_vocab, tgt_vocab_size = _load_vocab(
@@ -440,8 +440,8 @@ def build_vocab(train_dataset_files, fields, data_type, share_vocab,
     build_fv_args["tgt"] = dict(
         max_size=tgt_vocab_size, min_freq=tgt_words_min_frequency)
     if allow_two_inputs:
-        build_fv_args["src2"] = dict(
-            max_size=src2_vocab_size, min_freq=src2_words_min_frequency)
+        build_fv_args["agenda"] = dict(
+            max_size=agenda_vocab_size, min_freq=agenda_words_min_frequency)
     tgt_multifield = fields["tgt"]
     _build_fv_from_multifield(
         tgt_multifield,
@@ -458,9 +458,9 @@ def build_vocab(train_dataset_files, fields, data_type, share_vocab,
             fixed_vocab=fixed_vocab and not free_src,
             size_multiple=vocab_size_multiple if not share_vocab else 1)
         if allow_two_inputs:
-            src2_multifield = fields["src2"]
+            agenda_multifield = fields["agenda"]
             _build_fv_from_multifield(
-                src2_multifield,
+                agenda_multifield,
                 counters,
                 build_fv_args,
                 fixed_vocab=fixed_vocab and not free_src,
@@ -470,25 +470,25 @@ def build_vocab(train_dataset_files, fields, data_type, share_vocab,
             logger.info(" * merging src and tgt vocab...")
             src_field = src_multifield.base_field
             tgt_field = tgt_multifield.base_field
-            src2_field = None
+            agenda_field = None
             if allow_two_inputs:
-                src2_field = src2_multifield.base_field
+                agenda_field = agenda_multifield.base_field
             _merge_field_vocabs(
-                src_field, tgt_field, src2_field, vocab_size=src_vocab_size,
+                src_field, tgt_field, agenda_field, vocab_size=src_vocab_size,
                 min_freq=src_words_min_frequency,
                 vocab_size_multiple=vocab_size_multiple)
             logger.info(" * merged vocab size: %d." % len(src_field.vocab))
     return fields  # is the return necessary?
 
 
-def _merge_field_vocabs(src_field, tgt_field, src2_field, vocab_size, min_freq,
+def _merge_field_vocabs(src_field, tgt_field, agenda_field, vocab_size, min_freq,
                         vocab_size_multiple):
     # in the long run, shouldn't it be possible to do this by calling
     # build_vocab with both the src and tgt data?
     specials = [tgt_field.unk_token, tgt_field.pad_token,
                 tgt_field.init_token, tgt_field.eos_token]
     merged = sum(
-        [src_field.vocab.freqs, tgt_field.vocab.freqs, src2_field.vocab.freqs], Counter()
+        [src_field.vocab.freqs, tgt_field.vocab.freqs, agenda_field.vocab.freqs], Counter()
     )
     merged_vocab = Vocab(
         merged, specials=specials,
@@ -498,11 +498,11 @@ def _merge_field_vocabs(src_field, tgt_field, src2_field, vocab_size, min_freq,
         _pad_vocab_to_multiple(merged_vocab, vocab_size_multiple)
     src_field.vocab = merged_vocab
     tgt_field.vocab = merged_vocab
-    if src2_field:
-        src2_field.vocab = merged_vocab
+    if agenda_field:
+        agenda_field.vocab = merged_vocab
     assert len(src_field.vocab) == len(tgt_field.vocab)
-    if src2_field:
-        assert len(src_field.vocab) == len(src2_field.vocab)
+    if agenda_field:
+        assert len(src_field.vocab) == len(agenda_field.vocab)
 
 
 def _read_vocab_file(vocab_path, tag):

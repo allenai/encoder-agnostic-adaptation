@@ -119,7 +119,7 @@ def main(opt, device_id):
     if opt.model_type == 'none':
         sides = ['tgt']
     elif opt.include_agenda:
-        sides = ['src', 'tgt', 'src2']
+        sides = ['src', 'tgt', 'agenda']
     else:
         sides = ['src', 'tgt']
 

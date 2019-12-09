@@ -168,12 +168,13 @@ class ArgumentParser(cfargparse.ArgumentParser):
         if opt.free_src and not opt.fixed_vocab:
             raise ValueError('free_src only makes sense when using fixed_vocab')
 
-        if opt.allow_two_inputs and (not opt.train_src2 or not opt.valid_src2):
-            raise ValueError('Please pass train_src2 and valid_src2 paths for '
+        if opt.allow_two_inputs and (not opt.train_agenda or not opt.valid_agenda):
+            raise ValueError('Please pass train_agenda and valid_agenda paths for '
                 'allow_two_inputs configuration')
 
-        if opt.allow_two_inputs and not opt.share_vocab:
-            raise ValueError('In order to evalute if got the correct tgt words its'
-                'to share_vocab')
+        if opt.allow_two_inputs and \
+            not (opt.share_vocab or (opt.agenda_vocab == opt.tgt_vocab)):
+            raise ValueError('In order to evalute if got the correct tgt words it '
+                'needs to have the same vocab')
 
         assert not (opt.data_type == 'imgvec' and opt.shard_size > 0)

@@ -9,6 +9,7 @@ filename = sys.argv[1]
 
 with_tldr = False
 replace_newline = False
+add_prefix_space = True
 tok_trunc = 1000000
 
 write_name = filename+'.bpe'
@@ -27,6 +28,9 @@ with open(filename, 'r') as f:
 
             bpe_tokens = []
             for token in re.findall(pat, txt): # line.strip() to make sure newline is not encoded
-                token = ''.join(enc.byte_encoder[b] for b in token.encode('utf-8'))
-                bpe_tokens.extend(enc.bpe(token).split(' '))
+                if add_prefix_space:
+                    bpe_tokens.extend(enc.tokenize(token, add_prefix_space=True))
+                else:
+                    token = ''.join(enc.byte_encoder[b] for b in token.encode('utf-8'))
+                    bpe_tokens.extend(enc.bpe(token).split(' '))
             fw.write(' '.join(bpe_tokens[:tok_trunc]) + '\n')

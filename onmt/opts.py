@@ -403,17 +403,17 @@ def preprocess_opts(parser):
                    "model faster and smaller")
     group.add('--allow_two_inputs', '-allow_two_inputs', action='store_true',
               help="If true, allow_two_inputs.")
-    group.add('--train_src2', '-train_src2',
+    group.add('--train_agenda', '-train_agenda',
               help="Path to the training source data")
-    group.add('--valid_src2', '-valid_src2',
+    group.add('--valid_agenda', '-valid_agenda',
               help="Path to the validation source data")
-    group.add('--src2_vocab', '-src2_vocab', default="",
+    group.add('--agenda_vocab', '-agenda_vocab', default="",
               help="Path to an existing source vocabulary. Format: "
                    "one word per line.")
-    group.add('--src2_vocab_size', '-src2_vocab_size', type=int, default=100000,
+    group.add('--agenda_vocab_size', '-agenda_vocab_size', type=int, default=100000,
               help="Size of the source vocabulary")
-    group.add('--src2_words_min_frequency',
-              '-src2_words_min_frequency', type=int, default=0)
+    group.add('--agenda_words_min_frequency',
+              '-agenda_words_min_frequency', type=int, default=0)
 
 
 def train_opts(parser):
@@ -594,7 +594,7 @@ def train_opts(parser):
     group.add('--first_4', '-first_4', action='store_true',
               help="If true, reports accuracy over 4 first tokens.")
     group.add('--include_agenda', '-include_agenda', action='store_true',
-              help="If true, assume agenda in src2.")
+              help="If true, assume agenda in agenda.")
 
     # learning rate
     group = parser.add_argument_group('Optimization- Rate')

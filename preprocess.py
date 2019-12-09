@@ -33,12 +33,12 @@ def build_save_dataset(corpus_type, fields, readers_list, opt):
 
     if corpus_type == 'train':
         src = opt.train_src
-        src2 = opt.train_src2
+        agenda = opt.train_agenda
         tgt = opt.train_tgt
         pointers_file = opt.pointers_file
     else:
         src = opt.valid_src
-        src2 = opt.valid_src2
+        agenda = opt.valid_agenda
         tgt = opt.valid_tgt
         pointers_file = None
 
@@ -55,12 +55,12 @@ def build_save_dataset(corpus_type, fields, readers_list, opt):
             return split_corpus(src, opt.shard_size)
 
     src_shards = create_src_shards(src, opt)
-    src2_shards = create_src_shards(src2, opt)
+    agenda_shards = create_src_shards(agenda, opt)
 
-    if not src2:
+    if not agenda:
         shards = zip(src_shards, tgt_shards)
     else:
-        shards = zip(src_shards, src2_shards, tgt_shards)
+        shards = zip(src_shards, agenda_shards, tgt_shards)
 
     dataset_paths = []
     if (corpus_type == "train" or opt.filter_valid) and tgt is not None:
@@ -71,16 +71,16 @@ def build_save_dataset(corpus_type, fields, readers_list, opt):
         filter_pred = None
 
     for i, flat_shard in enumerate(shards):
-        if not src2:
+        if not agenda:
             src_shard, tgt_shard = flat_shard
         else:
-            src_shard, src2_shard, tgt_shard = flat_shard
+            src_shard, agenda_shard, tgt_shard = flat_shard
         assert opt.data_type in ['imgvec', 'none'] or len(src_shard) == len(tgt_shard)
         logger.info("Building shard %d." % i)
         src_reader, tgt_reader = readers_list[0], readers_list[1]
         if opt.allow_two_inputs and len(readers_list) == 3:
             readers = readers_list
-            data = ([("src", src_shard), ("tgt", tgt_shard), ("src2", src2_shard)])
+            data = ([("src", src_shard), ("tgt", tgt_shard), ("agenda", agenda_shard)])
             dirs = [opt.src_dir, None, None]
         elif src_reader and tgt_reader:
             readers = [src_reader, tgt_reader]
@@ -126,7 +126,7 @@ def build_save_vocab(train_dataset, fields, opt):
         train_dataset, fields, opt.data_type, opt.share_vocab,
         opt.src_vocab, opt.src_vocab_size, opt.src_words_min_frequency,
         opt.tgt_vocab, opt.tgt_vocab_size, opt.tgt_words_min_frequency,
-        opt.allow_two_inputs, opt.src2_vocab, opt.src2_vocab_size, opt.src2_words_min_frequency,
+        opt.allow_two_inputs, opt.agenda_vocab, opt.agenda_vocab_size, opt.agenda_words_min_frequency,
         fixed_vocab=opt.fixed_vocab,
         free_src=opt.free_src, free_tgt=opt.free_tgt,
         vocab_size_multiple=opt.vocab_size_multiple
@@ -171,6 +171,7 @@ def main(opt):
     src_nfeats = count_features(opt.train_src) if opt.data_type == 'text' \
         else 0
     tgt_nfeats = count_features(opt.train_tgt)  # tgt always text so far
+    agenda_nfeats = count_features(opt.train_agenda)  # agenda always text so far
     logger.info(" * number of source features: %d." % src_nfeats)
     logger.info(" * number of target features: %d." % tgt_nfeats)
 
@@ -204,6 +205,7 @@ def main(opt):
         opt.data_type,
         src_nfeats,
         tgt_nfeats,
+        agenda_nfeats,
         dynamic_dict=opt.dynamic_dict,
         src_truncate=opt.src_seq_length_trunc,
         tgt_truncate=opt.tgt_seq_length_trunc,
