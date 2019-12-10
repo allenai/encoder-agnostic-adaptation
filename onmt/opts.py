@@ -816,6 +816,9 @@ def translate_opts(parser):
               help='Window stride for spectrogram in seconds')
     group.add('--window', '-window', default='hamming',
               help='Window type for spectrogram generation')
+    group.add('--agenda', '-agenda',
+              help="Agenda Items to decode (one line per "
+                   "sequence)")
 
 
 # Copyright 2016 The Chromium Authors. All rights reserved.

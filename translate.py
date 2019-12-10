@@ -36,19 +36,34 @@ def main(opt):
 
     translator = build_translator(opt, report_score=True)
 
-    if opt.data_type == 'imgvec':
-        assert opt.shard_size <= 0
-        src_shards = [opt.src]
-    else:
-        if opt.data_type == 'none':
-            src_shards = [None]*99999
+    def create_src_shards(path, opt, binary=True):
+        if opt.data_type == 'imgvec':
+            assert opt.shard_size <= 0
+            return [path]
         else:
-            src_shards = split_corpus(opt.src, opt.shard_size)
+            if opt.data_type == 'none':
+                return [None]*99999
+            else:
+                return split_corpus(path, opt.shard_size, binary=binary)
+
+    src_shards = create_src_shards(opt.src, opt)
+    if opt.agenda:
+        agenda_shards = create_src_shards(opt.agenda, opt, False)
+
     tgt_shards = split_corpus(opt.tgt, opt.shard_size) \
         if opt.tgt is not None else repeat(None)
-    shard_pairs = zip(src_shards, tgt_shards)
+ 
+    if not opt.agenda:
+        shards = zip(src_shards, tgt_shards)
+    else:
+        shards = zip(src_shards, agenda_shards, tgt_shards)
 
-    for i, (src_shard, tgt_shard) in enumerate(shard_pairs):
+    for i, flat_shard in enumerate(shards):
+        if not opt.agenda:
+            src_shard, tgt_shard = flat_shard
+            agenda_shard = None
+        else:
+            src_shard, agenda_shard, tgt_shard = flat_shard
         logger.info("Translating shard %d." % i)
 
         tag_shard = None
@@ -58,6 +73,7 @@ def main(opt):
         translator.translate(
             src=src_shard,
             tgt=tgt_shard,
+            agenda=agenda_shard,
             src_dir=opt.src_dir,
             batch_size=opt.batch_size,
             attn_debug=opt.attn_debug,
