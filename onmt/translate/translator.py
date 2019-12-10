@@ -964,5 +964,4 @@ class Translator(object):
                 found += item in pred
                 total += 2
         msg = f"AGENDA ACCURACY: {round(100*found/total, 2)}%. Found {found} out of {total} agenda items."
-        import pdb; pdb.set_trace()
         return found
