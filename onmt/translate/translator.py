@@ -90,6 +90,7 @@ class Translator(object):
             fields,
             src_reader,
             tgt_reader,
+            agenda_reader,
             gpu=-1,
             n_best=1,
             min_length=0,
@@ -148,6 +149,7 @@ class Translator(object):
             self._tgt_vocab.stoi[t] for t in self.ignore_when_blocking}
         self.src_reader = src_reader
         self.tgt_reader = tgt_reader
+        self.agenda_reader = agenda_reader
         self.replace_unk = replace_unk
         if self.replace_unk and not self.model.decoder.attentional:
             raise ValueError(
@@ -219,11 +221,13 @@ class Translator(object):
         else:
             src_reader = inputters.str2reader[opt.data_type].from_opt(opt)
         tgt_reader = inputters.str2reader["text"].from_opt(opt)
+        agenda_reader = inputters.str2reader["text"].from_opt(opt)
         return cls(
             model,
             fields,
             src_reader,
             tgt_reader,
+            agenda_reader,
             gpu=opt.gpu,
             n_best=opt.n_best,
             min_length=opt.min_length,
@@ -273,6 +277,7 @@ class Translator(object):
             self,
             src,
             tgt=None,
+            agenda=None,
             src_dir=None,
             batch_size=None,
             attn_debug=False,
@@ -306,6 +311,10 @@ class Translator(object):
         if tgt:
             readers += [self.tgt_reader]
             data += [("tgt", tgt)]
+            dirs += [None]
+        if agenda:
+            readers += [self.agenda_reader]
+            data += [("agenda", agenda)]
             dirs += [None]
 
         data = inputters.Dataset(
@@ -424,6 +433,9 @@ class Translator(object):
                 if self.report_rouge:
                     msg = self._report_rouge(tgt)
                     self._log(msg)
+            if agenda:
+                msg = self._report_agenda_accuray(agenda)
+                self._log(msg)
 
         if self.report_time:
             total_time = end_time - start_time
@@ -938,4 +950,18 @@ class Translator(object):
             "python %s/tools/test_rouge.py -r %s -c STDIN" % (path, tgt_path),
             shell=True, stdin=self.out_file
         ).decode("utf-8").strip()
+        return msg
+
+    def _report_agenda_accuray(self, agenda):
+        found, total = 0, 0
+        self.out_file.seek(0)
+        outputs = self.out_file.read()
+        outputs = outputs.split('\n')[:-1]
+        assert len(outputs) == len(agenda)
+        for pred, items in zip(outputs, agenda):
+            for item in items.split(' ĠSHALL '): #This will be changed anyhow
+                item = item.strip()
+                found += pred.count(item)
+                total += 2
+        msg = f"AGENDA ACCURACY: {round(100*found/total, 2)}%. Found {found} out of {total} agenda items."
         return msg

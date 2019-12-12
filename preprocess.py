@@ -78,7 +78,7 @@ def build_save_dataset(corpus_type, fields, readers_list, opt):
         assert opt.data_type in ['imgvec', 'none'] or len(src_shard) == len(tgt_shard)
         logger.info("Building shard %d." % i)
         src_reader, tgt_reader = readers_list[0], readers_list[1]
-        if opt.allow_two_inputs and len(readers_list) == 3:
+        if agenda:
             readers = readers_list
             data = ([("src", src_shard), ("tgt", tgt_shard), ("agenda", agenda_shard)])
             dirs = [opt.src_dir, None, None]
@@ -126,7 +126,7 @@ def build_save_vocab(train_dataset, fields, opt):
         train_dataset, fields, opt.data_type, opt.share_vocab,
         opt.src_vocab, opt.src_vocab_size, opt.src_words_min_frequency,
         opt.tgt_vocab, opt.tgt_vocab_size, opt.tgt_words_min_frequency,
-        opt.allow_two_inputs, opt.agenda_vocab, opt.agenda_vocab_size, opt.agenda_words_min_frequency,
+        opt.agenda_vocab, opt.agenda_vocab_size, opt.agenda_words_min_frequency,
         fixed_vocab=opt.fixed_vocab,
         free_src=opt.free_src, free_tgt=opt.free_tgt,
         vocab_size_multiple=opt.vocab_size_multiple
@@ -216,14 +216,14 @@ def main(opt):
         tgt_bos=tgt_bos,
         tgt_eos=tgt_eos,
         include_ptrs=opt.pointers_file is not None,
-        allow_two_inputs=opt.allow_two_inputs)
+        include_agenda=opt.train_agenda or opt.valid_agenda)
     
     if opt.data_type == 'none':
         readers = [None]
     else:
         readers = [inputters.str2reader[opt.data_type].from_opt(opt)]
     readers.append(inputters.str2reader["text"].from_opt(opt))
-    if opt.allow_two_inputs:
+    if opt.train_agenda or opt.valid_agenda:
         readers.append(inputters.str2reader["text"].from_opt(opt))
 
     logger.info("Building & saving training data...")

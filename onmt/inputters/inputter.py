@@ -85,7 +85,7 @@ def get_fields(
     src_truncate=None,
     tgt_truncate=None,
     include_ptrs=False,
-    allow_two_inputs=False
+    include_agenda=False
 ):
     """
     Args:
@@ -157,7 +157,7 @@ def get_fields(
             use_vocab=False, dtype=torch.long,
             postprocessing=make_pointer, sequential=False)
 
-    if allow_two_inputs:
+    if include_agenda:
         # Assuming type text
         agenda_field_kwargs = {"n_feats": n_agenda_feats,
                               "include_lengths": True,
@@ -354,7 +354,7 @@ def _build_fv_from_multifield(multifield, counters, build_fv_args,
 def build_vocab(train_dataset_files, fields, data_type, share_vocab,
                 src_vocab_path, src_vocab_size, src_words_min_frequency,
                 tgt_vocab_path, tgt_vocab_size, tgt_words_min_frequency,
-                allow_two_inputs, agenda_vocab_path, agenda_vocab_size, agenda_words_min_frequency,
+                agenda_vocab_path, agenda_vocab_size, agenda_words_min_frequency,
                 fixed_vocab=False, free_src=False, free_tgt=False, vocab_size_multiple=1):
     """Build the fields for all data sides.
 
@@ -390,7 +390,7 @@ def build_vocab(train_dataset_files, fields, data_type, share_vocab,
     else:
         src_vocab = None
 
-    if allow_two_inputs and agenda_vocab_path:
+    if agenda_vocab_path:
         agenda_vocab, agenda_vocab_size = _load_vocab(
             agenda_vocab_path, "agenda", counters)
     else:
@@ -439,7 +439,7 @@ def build_vocab(train_dataset_files, fields, data_type, share_vocab,
         max_size=src_vocab_size, min_freq=src_words_min_frequency)
     build_fv_args["tgt"] = dict(
         max_size=tgt_vocab_size, min_freq=tgt_words_min_frequency)
-    if allow_two_inputs:
+    if agenda_vocab_path:
         build_fv_args["agenda"] = dict(
             max_size=agenda_vocab_size, min_freq=agenda_words_min_frequency)
     tgt_multifield = fields["tgt"]
@@ -457,7 +457,7 @@ def build_vocab(train_dataset_files, fields, data_type, share_vocab,
             build_fv_args,
             fixed_vocab=fixed_vocab and not free_src,
             size_multiple=vocab_size_multiple if not share_vocab else 1)
-        if allow_two_inputs:
+        if agenda_vocab_path:
             agenda_multifield = fields["agenda"]
             _build_fv_from_multifield(
                 agenda_multifield,
@@ -471,7 +471,7 @@ def build_vocab(train_dataset_files, fields, data_type, share_vocab,
             src_field = src_multifield.base_field
             tgt_field = tgt_multifield.base_field
             agenda_field = None
-            if allow_two_inputs:
+            if agenda_vocab_path:
                 agenda_field = agenda_multifield.base_field
             _merge_field_vocabs(
                 src_field, tgt_field, agenda_field, vocab_size=src_vocab_size,
