@@ -401,8 +401,8 @@ def preprocess_opts(parser):
               choices=[3, 1],
               help="Using grayscale image can training "
                    "model faster and smaller")
-    group.add('--allow_two_inputs', '-allow_two_inputs', action='store_true',
-              help="If true, allow_two_inputs.")
+
+    # Agenda Options
     group.add('--train_agenda', '-train_agenda',
               help="Path to the training source data")
     group.add('--valid_agenda', '-valid_agenda',
@@ -622,7 +622,7 @@ def train_opts(parser):
     group.add('--warmup_init_factor', '-warmup_init_factor', type=int, default=5000,
               help="Ratio of max lr to initial lr for invsq decay scheme.")
     group.add('--disc_ft', '-disc_ft', type=float, default=-1,
-              help="Scale factor for discriminative fine-tuning.") # I think is lowering the lr whenever we're going down the network
+              help="Scale factor for discriminative fine-tuning.")
     group.add('--dec_lr_factor', '-dec_lr_factor', type=float, default=1.0,
               help="How much lower lr is for decoder, if using disc_ft.")
     group.add('--full_gen_bias', '-full_gen_bias', action='store_true',
