@@ -101,17 +101,22 @@ class Statistics(object):
         """ compute accuracy """
         return 100 * (self.n_correct / self.n_words)
 
+    def has_first_4_logs(self):
+        return self.n_non_padding_first_4 != 0
+
     def first_4_accuracy(self):
         """ compute accuracy for first 4 words"""
-        if self.n_non_padding_first_4 == 0:
-            return 0
-        return 100 * (self.n_correct_of_first_4 / self.n_non_padding_first_4)
+        if self.has_first_4_logs():
+            return 100 * (self.n_correct_of_first_4 / self.n_non_padding_first_4)
+        return 0
+
+    def has_agenda_logs(self):
+        return self.n_non_padding_agenda != 0
 
     def agenda_accuracy(self):
-        """ compute accuracy for first 4 words"""
-        if self.n_non_padding_agenda == 0:
-            return 0
-        return 100 * (self.n_correct_agenda / self.n_non_padding_agenda)
+        if self.has_agenda_logs():
+            return 100 * (self.n_correct_agenda / self.n_non_padding_agenda)
+        return 0
 
     def xent(self):
         """ compute cross entropy """
@@ -137,19 +142,22 @@ class Statistics(object):
         step_fmt = "%2d" % step
         if num_steps > 0:
             step_fmt = "%s/%5d" % (step_fmt, num_steps)
-        logger.info(
-                ("Step %s; acc: %6.2f; first_4_acc: %6.2f; agenda_acc: %6.2f; ppl: %5.2f; xent: %4.3f; " +
-             "lr: %7.5f; %3.0f/%3.0f tok/s; %6.0f sec")
-            % (step_fmt,
-               self.accuracy(),
-               self.first_4_accuracy(),
-               self.agenda_accuracy(),
-               self.ppl(),
-               self.xent(),
-               learning_rate,
-               self.n_src_words / (t + 1e-5),
-               self.n_words / (t + 1e-5),
-               time.time() - start))
+        log_message = ("Step %s; acc: %6.2f; ppl: %5.2f; xent: %4.3f; " +
+             "lr: %7.5f; %3.0f/%3.0f tok/s; %6.0f sec") % (step_fmt,
+                                                           self.accuracy(),
+                                                           self.ppl(),
+                                                           self.xent(),
+                                                           learning_rate,
+                                                           self.n_src_words / (t + 1e-5),
+                                                           self.n_words / (t + 1e-5),
+                                                           time.time() - start)
+
+        if self.has_first_4_logs():
+            log_message += " first_4_acc: %6.2f;" % self.first_4_accuracy()
+        if self.has_agenda_logs():
+            log_message += " agenda_acc: %6.2f;" % self.agenda_accuracy()
+
+        logger.info(log_message)
         sys.stdout.flush()
 
     def log_tensorboard(self, prefix, writer, learning_rate, step):

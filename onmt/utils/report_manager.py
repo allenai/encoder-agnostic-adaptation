@@ -154,8 +154,10 @@ class ReportMgr(ReportMgrBase):
             self.log('Validation perplexity: %g' % valid_stats.ppl())
             self.log('Validation xent: %g' % valid_stats.xent())
             self.log('Validation accuracy: %g' % valid_stats.accuracy())
-            self.log('Validation first 4 accuracy: %g' % valid_stats.first_4_accuracy())
-            self.log('Validation agenda accuracy: %g' % valid_stats.agenda_accuracy())
+            if valid_stats.has_first_4_logs():
+                self.log('Validation first 4 accuracy: %g' % valid_stats.first_4_accuracy())
+            if valid_stats.has_agenda_logs():
+                self.log('Validation agenda accuracy: %g' % valid_stats.agenda_accuracy())
 
             self.maybe_log_tensorboard(valid_stats,
                                        "valid",

@@ -15,9 +15,11 @@ This code was tested with `pytorch 1.0.1`. See requirements.txt for a complete l
 You can find the BPEized data the original paper used in the experiments [here](https://drive.google.com/file/d/1Z6AdOr2MtWlN7sYRTMibzAcghBjSBzZK/view?usp=sharing). 
 
 ### Your Data
+I expect using agenda items. I you do not, Just ignore all agenda related notes.
 
-You should create 6 files. train.txt.src, train.txt.tgt, valid.txt.src, valid.txt.tgt, test.txt.src, test.txt.tgt.
+You should create 9 files. train.txt.src, train.txt.tgt, train.txt.agenda, valid.txt.src, valid.txt.tgt, valid.txt.agenda, test.txt.src, test.txt.tgt, test.txt.agenda.
 If your testbed is the tacred dataset, you can create corresponding datafiles using `python scripts/create_datafiles.py`. Notice the possible arguments the script takes.
+For the "now you're cooking" dataset, download it from here and use `python create_recipes_datafiles.py --dataset ...now_youre_cooking/train --output data/recepies/train; python create_recipes_datafiles.py --dataset ...now_youre_cooking/dev --output data/recepies/dev; python create_recipes_datafiles.py --dataset ...now_youre_cooking/test --output data/recepies/test; `
 
 #### BPE Your Data
 
@@ -31,12 +33,12 @@ Then you need to preprocess you data. example below.
 
 ### Preprocess
 
-`python preprocess.py -train_src .../train.txt.src.bpe -train_tgt .../train.txt.tgt.bpe -valid_src .../valid.txt.src.bpe -valid_tgt .../valid.txt.tgt.bpe -save_data .../TACRED_BPE -tgt_seq_length_trunc 100 -src_vocab gpt2/vocab.txt -tgt_vocab gpt2/vocab.txt -fixed_vocab`
+`python preprocess.py -train_src .../train.txt.src.bpe -train_tgt .../train.txt.tgt.bpe -train_agenda .../train.txt.agenda.bpe -valid_src .../valid.txt.src.bpe -valid_tgt .../valid.txt.tgt.bpe -valid_agenda .../valid.txt.agenda.bpe -save_data .../BPE -tgt_seq_length_trunc 100 -src_vocab gpt2/vocab.txt -tgt_vocab gpt2/vocab.txt -agenda_vocab gpt2/vocab.txt -fixed_vocab`
 
 ### Train
 Currently I'm experimenting with Pseudo self attention.
 
-**Pseudo self attention**: `python train.py -config config/config_file.yml -run_name run_name -gpt2_params_path gpt2/models/124M/ -gpt2_init_embanddec > log.txt 2>&1 &`
+**Pseudo self attention**: `python train.py -config config/config_file.yml -run_name run_name -gpt2_params_path gpt2/models/124M/ -gpt2_init_embanddec -include_agenda > log.txt 2>&1 &`
 
 ### Generation
 
