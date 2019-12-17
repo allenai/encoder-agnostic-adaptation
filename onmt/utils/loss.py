@@ -59,7 +59,7 @@ def build_loss_compute(model, tgt_field, opt, train=True, **kwargs):
     elif opt.first_4:
         compute = FirstFourLossCompute(criterion, loss_gen)
     elif opt.include_agenda:
-        compute = AgendaTokensLossCompute(criterion, loss_gen, tgt_field.vocab)
+        compute = MultiTokensAgendaTokensLossCompute(criterion, loss_gen, tgt_field.vocab)
     else:
         compute = NMTLossCompute(criterion, loss_gen)
     compute.to(device)
@@ -373,29 +373,40 @@ class MultiTokensAgendaTokensLossCompute(NMTLossCompute):
         full_pred = pred.view(max_length, -1)
         n_correct_agenda, n_non_padding_agenda = 0, 0
         for b in range(batch.agenda[0].size(1)):
-            items = batch.agenda[0][:, b, 0]
-            padding_indices = (items == self.padding_idx).nonzero() #Expecting padding between words.
-            if padding_indices.size(0) > 1:
-                item1 = items[:padding_indices[0]]
-                item2 = items[padding_indices[0]+1:padding_indices[1]]
-            else:
-                item1 = items[:padding_indices]
-                item2 = items[padding_indices+1:]
+            items = self._find_non_padding_items(batch.agenda[0][:, b, 0])
 
-            n_correct_agenda += self._search_for_full_item(full_pred[:, b], item1) + \
-                                self._search_for_full_item(full_pred[:, b], item2)
-            n_non_padding_agenda += 2
+            found_items = [self._search_for_full_item(full_pred[:, b], item) for item in items]
+            count_max_1_found = [min(found, 1) for found in found_items]
+            n_correct_agenda += sum(count_max_1_found)
+            n_non_padding_agenda += len(items)
 
         return onmt.utils.Statistics(loss.item(), num_non_padding, num_correct, n_correct_agenda=n_correct_agenda, n_non_padding_agenda=n_non_padding_agenda)
 
+    def _find_non_padding_items(self, items):
+        ret_items = []
+        inside_outside_item = 'o'
+        for item in items:
+            if item == self.padding_idx:
+                inside_outside_item = 'o'
+            else:
+                if inside_outside_item == 'o':
+                    inside_outside_item = 'i'
+                    ret_items.append([item])
+                else:
+                    ret_items[-1].append(item)
+
+        return ret_items
+
     def _search_for_full_item(self, pred, item):
         found = 0
-        starts = (pred == item[0]).nonzero().squeeze()
+        starts = (pred == item[0]).nonzero().squeeze(1)
         for start in starts:
             found += 1
             pointer = start
             for x in item[1:]:
                 pointer = pointer+1
+                if pointer >= pred.size(0):
+                    break
                 if not pred[pointer] == x:
                     found -= 1
                     break

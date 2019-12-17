@@ -171,7 +171,7 @@ def main(opt):
     src_nfeats = count_features(opt.train_src) if opt.data_type == 'text' \
         else 0
     tgt_nfeats = count_features(opt.train_tgt)  # tgt always text so far
-    agenda_nfeats = count_features(opt.train_agenda)  # agenda always text so far
+    agenda_nfeats = count_features(opt.train_agenda) if opt.train_agenda else 0
     logger.info(" * number of source features: %d." % src_nfeats)
     logger.info(" * number of target features: %d." % tgt_nfeats)
 

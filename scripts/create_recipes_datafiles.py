@@ -3,7 +3,9 @@ import argparse
 import re
 
 ENCODER_AGNOSTIC_PAD = "SHALL"
-REGEX_TO_REPLACE = """(\(?(\d+\s)*\d+(\/\d+)?\s*(?!(minutes))(scoops|-inch|inch|cl|ts|tb|oz|sm|ea|sl|lb|ds|qt|cn|lg|md|pk|pt|to|in.|pn|dr|ct|bn|ea|t|ts|T|fl|ga|ml|cb|dl|mg|cg|dg|kg|l|g|"|c|t|x|)*\s*\)?;?\s+)*([;,\s]*(sized|pkg|\(optional\))\s*)*"""
+TRIM_END_IF_FOUND = [' --', ' cut into']
+TRIM_START_IF_FOUND = ['-']
+REGEX_TO_REPLACE = """(\(?(\d+\s)*\d+([\/-]\d+)?\s*(?!(minutes))(scoops|-inch|inch|cl|ts|tb|oz|sm|ea|sl|lb|ds|qt|cn|lg|md|pk|pt|to|in.|pn|dr|ct|bn|ea|t|ts|T|fl|ga|ml|cb|dl|mg|cg|dg|kg|l|g|"|c|t|x|)*\s*\)?;?\s+)*([;,\s]*(sized|finely|chopped|minced|pkg|\(optional\))\s*)*"""
 
 def merge_recipes(opt):
     clean_folder = os.path.join(opt.dataset, "clean")
@@ -55,13 +57,21 @@ def prepare_ingredients(ingredients):
         ingredient = ingredient.replace(")", "")
         ingredient = ingredient.replace(" - ", " ")
         ingredient = ingredient.replace(" or ", " ")
+        ingredient = ingredient.replace(" or ", " ")
         ingredient = ingredient.replace("-lrb-", "")
         ingredient = ingredient.replace("-LRB-", "")
         ingredient = ingredient.replace("-rrb-", "")
         ingredient = ingredient.replace("-RRB-", "")
-        ingredient = ingredient.replace("  ", " ")
-        ingredient = ingredient.replace("  ", " ")
-        ingredient = ingredient.replace("  ", " ")
+        ingredient = ingredient.replace("a-1? ", "")
+        for pattern in TRIM_END_IF_FOUND:
+            if pattern in ingredient:
+                pattern_index = ingredient.index(pattern)
+                ingredient = ingredient[:pattern_index]
+        for pattern in TRIM_START_IF_FOUND:
+            if pattern in ingredient:
+                pattern_index = ingredient.index(pattern)
+                ingredient = ingredient[pattern_index+1:]
+        ingredient = re.sub(" +", " ", ingredient)
         ret_ingredients.append(ingredient)
 
     return f" {ENCODER_AGNOSTIC_PAD} ".join(ret_ingredients).strip(), False

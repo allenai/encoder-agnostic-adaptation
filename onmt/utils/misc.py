@@ -6,7 +6,7 @@ import inspect
 from itertools import islice
 
 
-def split_corpus(path, shard_size, iter_func=None, binary=True):
+def split_corpus(path, shard_size, iter_func=None, binary=False):
     priv_str = "r"
     if binary:
         priv_str += "b"

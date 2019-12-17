@@ -959,9 +959,8 @@ class Translator(object):
         outputs = outputs.split('\n')[:-1]
         assert len(outputs) == len(agenda)
         for pred, items in zip(outputs, agenda):
-            for item in items.split(' ĠSHALL '): #This will be changed anyhow
-                item = item.strip()
-                found += pred.count(item)
-                total += 2
+            for item in items.split(' ĠSHALL '):
+                found += item.strip() in pred
+                total += 1
         msg = f"AGENDA ACCURACY: {round(100*found/total, 2)}%. Found {found} out of {total} agenda items."
         return msg
