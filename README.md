@@ -19,7 +19,12 @@ I expect using agenda items. I you do not, Just ignore all agenda related notes.
 
 You should create 9 files. train.txt.src, train.txt.tgt, train.txt.agenda, valid.txt.src, valid.txt.tgt, valid.txt.agenda, test.txt.src, test.txt.tgt, test.txt.agenda.
 If your testbed is the tacred dataset, you can create corresponding datafiles using `python scripts/create_datafiles.py`. Notice the possible arguments the script takes.
-For the "now you're cooking" dataset, download it from here and use `python create_recipes_datafiles.py --dataset ...now_youre_cooking/train --output data/recepies/train; python create_recipes_datafiles.py --dataset ...now_youre_cooking/dev --output data/recepies/dev; python create_recipes_datafiles.py --dataset ...now_youre_cooking/test --output data/recepies/test; `
+For the "now you're cooking" dataset, download it from [here](http://homes.cs.washington.edu/~antoineb/datasets/now_youre_cooking.tar.gz) and use:
+```
+python create_recipes_datafiles.py --dataset ...now_youre_cooking/train --output data/now_youre_cooking/train
+python create_recipes_datafiles.py --dataset ...now_youre_cooking/dev --output data/now_youre_cooking/dev
+python create_recipes_datafiles.py --dataset ...now_youre_cooking/test --output data/now_youre_cooking/test
+```
 
 #### BPE Your Data
 

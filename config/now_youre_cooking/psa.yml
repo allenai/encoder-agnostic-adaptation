@@ -1,11 +1,11 @@
-data: data/now_youre_cooking/small/BPE
-save_checkpoint_steps: 1
+data: data/now_youre_cooking/BPE
+save_checkpoint_steps: 100
 keep_checkpoint: 2
 seed: 123
 warmup_steps: 200
 train_steps: 1000
-valid_steps: 1
-report_every: 1
+valid_steps: 100
+report_every: 100
 
 decoder_type: transformer
 encoder_type: transformer
@@ -27,8 +27,7 @@ max_grad_norm: 0.0
 disc_ft: 1.2
 dec_lr_factor: 5.0
 
-# batch_size: 2800
-batch_size: 300
+batch_size: 2800
 batch_type: tokens
 normalization: tokens
 dropout: 0.2
