@@ -95,6 +95,14 @@ class ArgumentParser(cfargparse.ArgumentParser):
             raise AssertionError('loading GPT weights for seq2seq initialization AND GPT '
                                  'probably does not make sense')
 
+        if model_opt.GPT_representation_mode != 'none' and (model_opt.gpt2_init_embanddec or model_opt.simple_fusion or model_opt.gpt2_init_embandenc):
+            raise AssertionError('loading GPT weights for seq2seq initialization AND GPT '
+                                 'probably does not make sense')
+
+        if model_opt.use_GPT_version_multi_psa and model_opt.num_src < 1:
+            raise AssertionError('using GSA with multiple sources. no point in passing num_src < 1. '
+                                 'You really want to use num_src=1 only when debugging.')
+
     @classmethod
     def ckpt_model_opts(cls, ckpt_opt):
         # Load default opt values, then overwrite with the opts in

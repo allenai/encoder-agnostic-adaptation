@@ -66,6 +66,10 @@ def model_opts(parser):
               help="Use the slightly different GPT transformer version.")
     group.add('--use_GPT_version_psa', '-use_GPT_version_psa', action='store_true',
               help="Use the psa attn GPT transformer version.")
+    group.add('--use_GPT_version_multi_psa', '-use_GPT_version_multi_psa', action='store_true',
+              help="Use the psa attn GPT transformer version on multiple contexts.")
+    group.add('--num_src', '-num_src', type=int, default=1,
+              help="Number of sources allowed.")
     group.add('--use_GPT_version_unconditional', '-use_GPT_version_unconditional', action='store_true',
               help="Use the unconditional GPT transformer version.")
     group.add('--notrain_emb', '-notrain_emb', action='store_true',
@@ -155,7 +159,7 @@ def model_opts(parser):
                    "[rnn|brnn|mean|transformer|cnn].")
     group.add('--decoder_type', '-decoder_type', type=str, default='rnn',
               choices=['rnn', 'transformer', 'cnn',
-                  'rnn_uncond'],
+                  'rnn_uncond', 'multi_src_transformer'],
               help="Type of decoder layer to use. Non-RNN layers "
                    "are experimental. Options are "
                    "[rnn|transformer|cnn].")

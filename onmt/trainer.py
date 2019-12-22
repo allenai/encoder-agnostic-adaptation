@@ -65,7 +65,8 @@ def build_trainer(opt, device_id, model, fields, optim, model_saver=None):
                            average_every=average_every,
                            model_dtype=opt.model_dtype,
                            earlystopper=earlystopper,
-                           gpt2_params_std=opt.gpt2_params_std)
+                           gpt2_params_std=opt.gpt2_params_std,
+                           use_agenda=opt.include_agenda)
     return trainer
 
 
@@ -98,7 +99,8 @@ class Trainer(object):
                  trunc_size=0, shard_size=32, model_type='text',
                  norm_method="sents", grad_accum_count=1, n_gpu=1, gpu_rank=1,
                  gpu_verbose_level=0, report_manager=None, model_saver=None,
-                 average_decay=0, average_every=1, model_dtype='fp32', earlystopper=None, gpt2_params_std=-1):
+                 average_decay=0, average_every=1, model_dtype='fp32', earlystopper=None, gpt2_params_std=-1,
+                 use_agenda=False):
         # Basic attributes.
         self.model = model
         self.train_loss = train_loss
@@ -120,6 +122,7 @@ class Trainer(object):
         self.model_dtype = model_dtype
         self.earlystopper = earlystopper
         self.gpt2_params_std = gpt2_params_std
+        self.use_agenda = use_agenda
 
         assert grad_accum_count > 0
         if grad_accum_count > 1:
@@ -307,6 +310,10 @@ class Trainer(object):
                 else:
                     src, src_lengths = batch.src if isinstance(batch.src, tuple) \
                                        else (batch.src, None)
+                if hasattr(batch, 'agenda') and self.use_agenda:
+                    agenda, agenda_lengths = batch.agenda
+                    src =[src, agenda]
+                    src_lengths = [src_lengths, agenda_lengths]
 
                 # F-prop through the model.
                 outputs, attns = valid_model(src, tgt, src_lengths, 
@@ -352,6 +359,10 @@ class Trainer(object):
                     else (batch.src, None)
                 if src_lengths is not None:
                     report_stats.n_src_words += src_lengths.sum().item()
+            if hasattr(batch, 'agenda') and self.use_agenda:
+                agenda, agenda_lengths = batch.agenda
+                src = [src, agenda]
+                src_lengths = [src_lengths, agenda_lengths]
 
             bptt = False
             for j in range(0, target_size-1, trunc_size):
