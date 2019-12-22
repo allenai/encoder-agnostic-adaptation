@@ -685,25 +685,32 @@ def max_tok_len(new, count, sofar, tgt_only=False):
     in a batch <= batch_size
     """
     # Maintains the longest src and tgt length in the current batch
-    global max_src_in_batch, max_tgt_in_batch  # this is a hack
+    global max_src_in_batch, max_tgt_in_batch, max_agenda_in_batch  # this is a hack
     # Reset current longest length at a new batch (count=1)
     if count == 1:
         max_src_in_batch = 0
         max_tgt_in_batch = 0
+        max_agenda_in_batch = 0
     # Src: [<bos> w1 ... wN <eos>]
     if hasattr(new, 'src'):
         max_src_in_batch = max(max_src_in_batch, len(new.src[0]) + 2)
     else:
         max_src_in_batch = 0
+
+    if hasattr(new, 'agenda'):
+        max_agenda_in_batch = max(max_agenda_in_batch, len(new.agenda[0]) + 2)
+    else:
+        max_agenda_in_batch = 0
     # Tgt: [w1 ... wM <eos>]
     max_tgt_in_batch = max(max_tgt_in_batch, len(new.tgt[0]) + 1)
     src_elements = count * max_src_in_batch
     tgt_elements = count * max_tgt_in_batch
+    agenda_elements = count * max_agenda_in_batch
 
     if tgt_only:
         return tgt_elements
     else:
-        return max(src_elements, tgt_elements)
+        return max(src_elements, tgt_elements, agenda_elements)
 
 
 def build_dataset_iter(corpus_type, fields, opt, is_train=True):
