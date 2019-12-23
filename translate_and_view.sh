@@ -1,35 +1,34 @@
-while getopts m:s:b:l:n:k:p:o:v option
+while getopts m:s:t:a:l:n:o:g:v option
 do
 case "${option}"
 in
 m) model=${OPTARG};;
 s) src=${OPTARG};;
-b) beam_size=${OPTARG};;
+t) tgt=${OPTARG};;
+a) agenda=${OPTARG};;
 l) min_length=${OPTARG};;
 n) max_length=${OPTARG};;
-k) random_sampling_topk=${OPTARG};;
-p) random_sampling_temp=${OPTARG};;
 o) output=${OPTARG};;
 v) verbose=${OPTARG};;
+g) gpu=${OPTARG};;
 esac
 done
 
 python translate.py \
-    -beam_size $beam_size \
+    -beam_size 1 \
     -model $model \
     -src $src \
+    -tgt $tgt \
+    -agenda $agenda \
     -min_length $min_length \
     -max_length $max_length \
-    -random_sampling_topk $random_sampling_topk \
-    -random_sampling_temp $random_sampling_temp \
-    -output "${output}-b${beam_size}-topk${random_sampling_topk}-topp${random_sampling_temp}" \
+    -random_sampling_topk 10 \
+    -output $output \
+    -gpu $gpu \
     $verbose
 
-python gpt2/decode_text.py \
-    --src "${output}-b${beam_size}-topk${random_sampling_topk}-topp${random_sampling_temp}" \
-    --dst "${output}-b${beam_size}-topk${random_sampling_topk}-topp${random_sampling_temp}.decoded"
+python tools/bleu.py --gen $output --tgt $tgt
 
+python gpt2/decode_text.py --src "${output}" --dst "${output}.decoded"
 
-head "${output}-b${beam_size}-topk${random_sampling_topk}-topp${random_sampling_temp}.decoded"
-echo ""
-echo "${output}-b${beam_size}-topk${random_sampling_topk}-topp${random_sampling_temp}.decoded"
+echo "${output}.decoded"

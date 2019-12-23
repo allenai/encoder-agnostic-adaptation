@@ -543,7 +543,7 @@ class Translator(object):
                 else:
                     memory_bank = memory_bank.index_select(1, select_indices)
 
-                memory_lengths = memory_lengths.index_select(0, select_indices)
+                memory_lengths = [mem_len.index_select(0, select_indices) for mem_len in memory_lengths]
 
                 if src_map is not None:
                     src_map = src_map.index_select(1, select_indices)
@@ -592,8 +592,12 @@ class Translator(object):
         if hasattr(batch, 'src'):
             src, src_lengths = batch.src if isinstance(batch.src, tuple) \
                                else (batch.src, None)
+            if hasattr(batch, 'agenda') and hasattr(batch, 'src'):
+                agenda, agenda_lengths = batch.agenda
+                src = [src, agenda]
+                src_lengths = [src_lengths, agenda_lengths]
 
-            enc_states, memory_bank, src_lengths = self.model.encoder(
+            enc_states, memory_bank, src_lengths = self.model.encode(
                 src, src_lengths)
             if src_lengths is None:
                 assert not isinstance(memory_bank, tuple), \

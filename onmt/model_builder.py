@@ -217,8 +217,8 @@ def build_base_model(model_opt, fields, gpu, checkpoint=None, gpu_id=None):
         load_decoder = decoder
         if model_opt.unconditional:
             model = onmt.models.UncondModel(decoder)
-        elif model_opt.num_src > 1:
-            agenda_field = fields["agenda"]
+        elif model_opt.num_src > 1: #TODO Maybe src should be a list instead?
+            agenda_field = fields["agenda"] # This is agenda specific
             agenda_emb = build_embeddings(model_opt, agenda_field) #TODO, this requires different positional embeddings and a all new model_opt
 
             agenda_encoder = build_encoder(model_opt, agenda_emb)
