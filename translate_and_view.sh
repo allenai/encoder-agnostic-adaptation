@@ -32,3 +32,5 @@ python tools/bleu.py --gen $output --tgt $tgt
 python gpt2/decode_text.py --src "${output}" --dst "${output}.decoded"
 
 echo "${output}.decoded"
+
+# sh translate_and_view.sh -m output/now_youre_cooking_BPE/multipsa_now_youre_cooking/cooking_multipsa/checkpoints/model_step_2000.pt -s data/now_youre_cooking/test.txt.src.bpe -a data/now_youre_cooking/test.txt.agenda.bpe -t data/now_youre_cooking/test.txt.tgt.bpe -l 100 -n 150 -o generations/generations.txt -g 0 -v
