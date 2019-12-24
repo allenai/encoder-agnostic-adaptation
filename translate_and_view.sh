@@ -21,7 +21,7 @@ g) gpu=${OPTARG};;
 esac
 done
 
-output_file="${output}-b${beam_size}-topk${random_sampling_topk}-topp${random_sampling_temp}.txt"
+output_file="${output}-b${beam_size}-topk${random_sampling_topk}-topp${random_sampling_temp}-min${min_length}-max${max_length}.txt"
 
 python translate.py \
     -beam_size $beam_size \

@@ -543,7 +543,10 @@ class Translator(object):
                 else:
                     memory_bank = memory_bank.index_select(1, select_indices)
 
-                memory_lengths = [mem_len.index_select(0, select_indices) for mem_len in memory_lengths]
+                if isinstance(memory_lengths, list):
+                    memory_lengths = [lengths.index_select(0, select_indices) for lengths in memory_lengths]
+                else:
+                    memory_lengths = memory_lengths.index_select(0, select_indices)
 
                 if src_map is not None:
                     src_map = src_map.index_select(1, select_indices)
