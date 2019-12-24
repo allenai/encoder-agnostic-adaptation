@@ -27,7 +27,7 @@ python translate.py \
     -beam_size $beam_size \
     -model $model \
     -src $src \
-    -tgt $tgt \
+    -tgt "${tgt}.bpe" \
     -agenda $agenda \
     -min_length $min_length \
     -max_length $max_length \
@@ -36,12 +36,12 @@ python translate.py \
     -output $output_file \
     -gpu $gpu
 
-python tools/bleu.py --gen $output_file --tgt $tgt
-
 python gpt2/decode_text.py \
     --src $output_file \
     --dst "${output_file}.decoded"
 
+python tools/bleu.py --gen "${output_file}.decoded" --tgt $tgt
+
 echo "${output_file}.decoded"
 
-# sh translate_and_view.sh -m output/now_youre_cooking_BPE/multipsa_now_youre_cooking/cooking_multipsa/checkpoints/model_step_2000.pt -s data/now_youre_cooking/test.txt.src.bpe -a data/now_youre_cooking/test.txt.agenda.bpe -t data/now_youre_cooking/test.txt.tgt.bpe -l 100 -n 150 -o generations/generations.txt -g 0 -v
+# sh translate_and_view.sh -m output/now_youre_cooking_BPE/multipsa_now_youre_cooking/cooking_multipsa/checkpoints/model_step_2000.pt -s data/now_youre_cooking/test.txt.src.bpe -a data/now_youre_cooking/test.txt.agenda.bpe -t data/now_youre_cooking/test.txt.tgt -l 100 -n 150 -o generations/generations.txt -g 0 -v
