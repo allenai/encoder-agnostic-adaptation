@@ -12,6 +12,8 @@ def report_bleu(gen_file, tgt_path):
 
     msg = ">> " + res.strip()
     print(msg)
+    with open(args.gen+".bleu", 'w') as f:
+        f.write(msg)
 
 
 if __name__ == "__main__":
