@@ -225,7 +225,6 @@ def build_base_model(model_opt, fields, gpu, checkpoint=None, gpu_id=None):
             for k in agenda_opt.__dict__.keys():
                 if hasattr(model_opt, f"agenda_{k}"):
                     setattr(agenda_opt, k, getattr(model_opt, f"agenda_{k}"))
-            import pdb; pdb.set_trace()
 
             agenda_emb = build_embeddings(agenda_opt, agenda_field)
 
