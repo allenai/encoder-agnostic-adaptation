@@ -732,7 +732,10 @@ class Translator(object):
         if tags is not None:
             tags = tile(tags, beam_size, dim=1)
 
-        memory_lengths = tile(src_lengths, beam_size)
+        if isinstance(src_lengths, list):
+            memory_lengths = [tile(lengths, beam_size) for lengths in src_lengths]
+        else:
+            memory_lengths = tile(src_lengths, beam_size)
 
         # (0) pt 2, prep the beam object
         beam = BeamSearch(
