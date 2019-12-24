@@ -543,7 +543,10 @@ class Translator(object):
                 else:
                     memory_bank = memory_bank.index_select(1, select_indices)
 
-                memory_lengths = memory_lengths.index_select(0, select_indices)
+                if isinstance(memory_lengths, list):
+                    memory_lengths = [lengths.index_select(0, select_indices) for lengths in memory_lengths]
+                else:
+                    memory_lengths = memory_lengths.index_select(0, select_indices)
 
                 if src_map is not None:
                     src_map = src_map.index_select(1, select_indices)
@@ -592,8 +595,12 @@ class Translator(object):
         if hasattr(batch, 'src'):
             src, src_lengths = batch.src if isinstance(batch.src, tuple) \
                                else (batch.src, None)
+            if hasattr(batch, 'agenda') and hasattr(batch, 'src'):
+                agenda, agenda_lengths = batch.agenda
+                src = [src, agenda]
+                src_lengths = [src_lengths, agenda_lengths]
 
-            enc_states, memory_bank, src_lengths = self.model.encoder(
+            enc_states, memory_bank, src_lengths = self.model.encode(
                 src, src_lengths)
             if src_lengths is None:
                 assert not isinstance(memory_bank, tuple), \
@@ -728,7 +735,10 @@ class Translator(object):
         if tags is not None:
             tags = tile(tags, beam_size, dim=1)
 
-        memory_lengths = tile(src_lengths, beam_size)
+        if isinstance(src_lengths, list):
+            memory_lengths = [tile(lengths, beam_size) for lengths in src_lengths]
+        else:
+            memory_lengths = tile(src_lengths, beam_size)
 
         # (0) pt 2, prep the beam object
         beam = BeamSearch(
@@ -786,7 +796,10 @@ class Translator(object):
                 if tags is not None:
                     tags = tags.index_select(1, select_indices)
 
-                memory_lengths = memory_lengths.index_select(0, select_indices)
+                if isinstance(memory_lengths, list):
+                    memory_lengths = [lengths.index_select(0, select_indices) for lengths in memory_lengths]
+                else:
+                    memory_lengths = memory_lengths.index_select(0, select_indices)
 
                 if src_map is not None:
                     src_map = src_map.index_select(1, select_indices)

@@ -17,6 +17,17 @@ class MultiSrcNMTModel(nn.Module):
         self.encoders = encoders
         self.decoder = decoder
 
+    def encode(self, srcs, length_tuples):
+        enc_state, memory_bank, lengths_out = [], [], []
+
+        for src, encoder, lengths in zip(srcs, self.encoders, length_tuples):
+            outputs = encoder(src, lengths)
+            enc_state.append(outputs[0])
+            memory_bank.append(outputs[1])
+            lengths_out.append(outputs[2])
+
+        return enc_state, memory_bank, lengths_out
+
     def forward(self, srcs, tgt, length_tuples, bptt=False, **kwargs):
         """Forward propagate a `src` and `tgt` pair for training.
         Possible initialized with a beginning decoder state.
@@ -38,16 +49,10 @@ class MultiSrcNMTModel(nn.Module):
             * dictionary attention dists of ``(tgt_len, batch, src_len)``
         """
         tgt = tgt[:-1]  # exclude last target from inputs
-        enc_state, memory_bank, lengths_out = [], [], []
-
-        for src, encoder, lengths in zip(srcs, self.encoders, length_tuples):
-            outputs = encoder(src, lengths)
-            enc_state.append(outputs[0])
-            memory_bank.append(outputs[1])
-            lengths_out.append(outputs[2])
-
+        enc_state, memory_bank, lengths_out = self.encode(srcs, length_tuples)
         if bptt is False:
             self.decoder.init_state(srcs, memory_bank, enc_state)
+
         dec_out, attns = self.decoder(tgt, memory_bank,
                                       memory_lengths=lengths_out, **kwargs)
         return dec_out, attns

@@ -150,12 +150,12 @@ class MultiSrcTransformerDecoder(nn.Module):
 
     def _init_cache(self, memory_bank):
         self.state["cache"] = {}
-        batch_size = memory_bank.size(1)
-        depth = memory_bank.size(-1)
 
         for i, layer in enumerate(self.transformer_layers):
             layer_cache = {"memory_keys": None, "memory_values": None}
             if isinstance(layer.self_attn, AverageAttention):
+                batch_size = memory_bank[0].size(1)
+                depth = memory_bank[0].size(-1)
                 layer_cache["prev_g"] = torch.zeros((batch_size, 1, depth))
             else:
                 layer_cache["self_keys"] = None
