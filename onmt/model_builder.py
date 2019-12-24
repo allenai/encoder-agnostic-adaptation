@@ -218,8 +218,16 @@ def build_base_model(model_opt, fields, gpu, checkpoint=None, gpu_id=None):
         if model_opt.unconditional:
             model = onmt.models.UncondModel(decoder)
         elif model_opt.num_src > 1:
+            from argparse import Namespace
             agenda_field = fields["agenda"]
-            agenda_emb = build_embeddings(model_opt, agenda_field) #TODO, this requires different positional embeddings and a all new model_opt
+            agenda_opt = Namespace(**model_opt.__dict__)
+
+            for k in agenda_opt.__dict__.keys():
+                if hasattr(model_opt, f"agenda_{k}"):
+                    setattr(agenda_opt, k, getattr(model_opt, f"agenda_{k}"))
+            import pdb; pdb.set_trace()
+
+            agenda_emb = build_embeddings(agenda_opt, agenda_field)
 
             agenda_encoder = build_encoder(model_opt, agenda_emb)
             encoders = nn.ModuleList([encoder, agenda_encoder])

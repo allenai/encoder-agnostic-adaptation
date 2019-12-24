@@ -275,6 +275,19 @@ def model_opts(parser):
               help="Using grayscale image can training "
                    "model faster and smaller")
 
+     # Agenda Items
+    group.add('--agenda_position_encoding', '-agenda_position_encoding', action='store_true',
+              help="Use a sin to mark relative words positions. "
+                   "Necessary for non-RNN style models.")
+    group.add('--agenda_position_encoding_learned', '-agenda_position_encoding_learned', action='store_true',
+              help="Use learned position encoding for both encoder and decoder.")
+    group.add('--agenda_position_encoding_learned_enc', '-agenda_position_encoding_learned_enc', action='store_true',
+              help="Use learned position encoding for encoder.")
+    group.add('--agenda_position_encoding_learned_dec', '-agenda_position_encoding_learned_dec', action='store_true',
+              help="Use learned position encoding for decoder.")
+    group.add('--agenda_position_encoding_ctxsize', '-agenda_position_encoding_ctxsize', type=int, default=1024,
+              help="Maximum context size for transformer")
+
 def preprocess_opts(parser):
     """ Pre-procesing options """
     # Data options
