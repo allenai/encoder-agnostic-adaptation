@@ -162,11 +162,12 @@ class LossComputeBase(nn.Module):
         trunc_range = (trunc_start, trunc_start + trunc_size)
         shard_state = self._make_shard_state(batch, output, trunc_range, attns)
         if shard_size == 0:
-            loss, stats = self._compute_loss(batch, **shard_state)
-            return loss / float(normalization), stats
+            loss, stats, scores = self._compute_loss(batch, **shard_state)
+            return loss / float(normalization), stats, scores
         batch_stats = onmt.utils.Statistics()
         for shard in shards(shard_state, shard_size):
-            loss, stats = self._compute_loss(batch, **shard)
+            # Am I getting here?
+            loss, stats, scores = self._compute_loss(batch, **shard)
             loss.div(float(normalization)).backward()
             batch_stats.update(stats)
         return None, batch_stats
@@ -235,7 +236,7 @@ class NMTLossCompute(LossComputeBase):
 
     def _make_shard_state(self, batch, output, range_, attns=None):
         return {
-            "output": output,
+             "output": output,
             "target": batch.tgt[range_[0] + 1: range_[1], :, 0],
         }
 
@@ -260,7 +261,7 @@ class NMTLossCompute(LossComputeBase):
         loss = self.criterion(scores, gtruth)
         stats = self._stats(loss.clone(), scores, gtruth)
 
-        return loss, stats
+        return loss, stats, self._unbottle(scores, output.size(1)).detach()
 
 class FirstFourLossCompute(NMTLossCompute):
 
@@ -272,7 +273,7 @@ class FirstFourLossCompute(NMTLossCompute):
 
         loss = self.criterion(scores, gtruth)
         stats = self._stats(loss.clone(), scores, target, batch)
-        return loss, stats
+        return loss, stats, self._unbottle(scores, output.size(1)).detach()
 
     def _stats(self, loss, scores, target, batch):
         """
@@ -295,49 +296,6 @@ class FirstFourLossCompute(NMTLossCompute):
         num_correct_of_first_4 = pred.eq(target.view(-1)).masked_select(first_tokens_to_check_masking.view(-1)).sum().item()
         return onmt.utils.Statistics(loss.item(), num_non_padding, num_correct, num_correct_of_first_4, first_tokens_to_check_masking.sum().item())
 
-class AgendaTokensLossCompute(NMTLossCompute):
-
-    def __init__(self, criterion, loss_gen, tgt_vocab):
-        super(AgendaTokensLossCompute, self).__init__(criterion, loss_gen)
-        self.vocab = tgt_vocab
-
-    def _compute_loss(self, batch, output, target):
-        bottled_output = self._bottle(output)
-
-        scores = self.generator(bottled_output)
-        gtruth = target.view(-1)
-
-        loss = self.criterion(scores, gtruth)
-        stats = self._stats(loss.clone(), scores, target, batch)
-        return loss, stats
-
-    def _stats(self, loss, scores, target, batch):
-        """
-        Args:
-            loss (:obj:`FloatTensor`): the loss computed by the loss criterion.
-            scores (:obj:`FloatTensor`): a score for each possible output
-            target (:obj:`FloatTensor`): true targets
-
-        Returns:
-            :obj:`onmt.utils.Statistics` : statistics for this batch.
-        """
-        pred = scores.max(1)[1]
-        non_padding = target.view(-1).ne(self.padding_idx)
-        num_correct = pred.eq(target.view(-1)).masked_select(non_padding).sum().item()
-        num_non_padding = non_padding.sum().item()
-
-        agenda_items_found, total_items = 0, 0
-
-        max_length = batch.tgt.size(0) - 1
-        non_padding_pred = pred.ne(self.padding_idx)
-        agenda0 = batch.agenda[0][0, :, 0]
-        agenda1 = batch.agenda[0][2, :, 0]
-        for agenda_token in [agenda0, agenda1]:
-            expended_agenda_items = agenda_token.expand(max_length, -1)
-            agenda_items_found += pred.view(max_length, -1).eq(expended_agenda_items).view(-1).masked_select(non_padding_pred).sum().item()
-            total_items += agenda_token.view(-1).ne(self.padding_idx).sum().item()
-        return onmt.utils.Statistics(loss.item(), num_non_padding, num_correct, n_correct_agenda=agenda_items_found, n_non_padding_agenda=total_items)
-
 class MultiTokensAgendaTokensLossCompute(NMTLossCompute):
 
     def __init__(self, criterion, loss_gen, tgt_vocab):
@@ -352,7 +310,7 @@ class MultiTokensAgendaTokensLossCompute(NMTLossCompute):
 
         loss = self.criterion(scores, gtruth)
         stats = self._stats(loss.clone(), scores, target, batch)
-        return loss, stats
+        return loss, stats, self._unbottle(scores, output.size(1)).detach()
 
     def _stats(self, loss, scores, target, batch):
         """
@@ -413,6 +371,48 @@ class MultiTokensAgendaTokensLossCompute(NMTLossCompute):
 
         return found
 
+# class AgendaTokensLossCompute(NMTLossCompute):
+
+#     def __init__(self, criterion, loss_gen, tgt_vocab):
+#         super(AgendaTokensLossCompute, self).__init__(criterion, loss_gen)
+#         self.vocab = tgt_vocab
+
+#     def _compute_loss(self, batch, output, target):
+#         bottled_output = self._bottle(output)
+
+#         scores = self.generator(bottled_output)
+#         gtruth = target.view(-1)
+
+#         loss = self.criterion(scores, gtruth)
+#         stats = self._stats(loss.clone(), scores, target, batch)
+#         return loss, stats
+
+#     def _stats(self, loss, scores, target, batch):
+#         """
+#         Args:
+#             loss (:obj:`FloatTensor`): the loss computed by the loss criterion.
+#             scores (:obj:`FloatTensor`): a score for each possible output
+#             target (:obj:`FloatTensor`): true targets
+
+#         Returns:
+#             :obj:`onmt.utils.Statistics` : statistics for this batch.
+#         """
+#         pred = scores.max(1)[1]
+#         non_padding = target.view(-1).ne(self.padding_idx)
+#         num_correct = pred.eq(target.view(-1)).masked_select(non_padding).sum().item()
+#         num_non_padding = non_padding.sum().item()
+
+#         agenda_items_found, total_items = 0, 0
+
+#         max_length = batch.tgt.size(0) - 1
+#         non_padding_pred = pred.ne(self.padding_idx)
+#         agenda0 = batch.agenda[0][0, :, 0]
+#         agenda1 = batch.agenda[0][2, :, 0]
+#         for agenda_token in [agenda0, agenda1]:
+#             expended_agenda_items = agenda_token.expand(max_length, -1)
+#             agenda_items_found += pred.view(max_length, -1).eq(expended_agenda_items).view(-1).masked_select(non_padding_pred).sum().item()
+#             total_items += agenda_token.view(-1).ne(self.padding_idx).sum().item()
+#         return onmt.utils.Statistics(loss.item(), num_non_padding, num_correct, n_correct_agenda=agenda_items_found, n_non_padding_agenda=total_items)
 
 class SimpleFusionLossCompute(LossComputeBase):
     """
@@ -439,7 +439,7 @@ class SimpleFusionLossCompute(LossComputeBase):
         loss = self.criterion(scores, gtruth)
         stats = self._stats(loss.clone(), scores, gtruth)
 
-        return loss, stats
+        return loss, stats, self._unbottle(scores, output.size(1)).detach()
 
 
 def filter_shard_state(state, shard_size=None):

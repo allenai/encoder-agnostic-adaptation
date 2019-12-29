@@ -57,7 +57,7 @@ class MultiSrcJointMultiHeadedAttention(nn.Module):
                 vocab_size, self.dim_per_head)
 
     def forward(self, self_kvq, ctx_kv, self_mask=None, ctx_mask=None,
-                layer_cache=None, type=None):
+                layer_cache=None, type=None, check_vec=None):
         """
         Compute the context vector and the attention vectors.
 
@@ -109,7 +109,14 @@ class MultiSrcJointMultiHeadedAttention(nn.Module):
             layer_cache["self_values"] = self_value
 
             if layer_cache["memory_keys"] is None:
-                ctx_key = torch.cat([linear(kv) for linear, kv in zip(self.ctx_linear_keys, ctx_kv)], dim=1)
+                if check_vec is not None:
+                    # src
+                    checklist_keys = [self.ctx_linear_keys[0](ctx_kv[0])]
+                    # agenda, mul with check_vec
+                    checklist_keys.append(self.ctx_linear_keys[1](torch.mul(ctx_kv[1], check_vec)))
+                    ctx_key = torch.cat(checklist_keys, dim=1)
+                else:
+                    ctx_key = torch.cat([linear(kv) for linear, kv in zip(self.ctx_linear_keys, ctx_kv)], dim=1)
                 ctx_value = torch.cat([linear(kv) for linear, kv in zip(self.ctx_linear_values, ctx_kv)], dim=1)
                 layer_cache["memory_keys"] = ctx_key
                 layer_cache["memory_values"] = ctx_value
@@ -120,7 +127,14 @@ class MultiSrcJointMultiHeadedAttention(nn.Module):
             self_key = self.linear_keys(self_kvq) # [batch, self_len, dim]
             self_value = self.linear_values(self_kvq)
             query = self.linear_query(self_kvq)
-            ctx_key = torch.cat([linear(kv) for linear, kv in zip(self.ctx_linear_keys, ctx_kv)], dim=1)
+            if check_vec is not None:
+                # src
+                checklist_keys = [self.ctx_linear_keys[0](ctx_kv[0])]
+                # agenda, mul with check_vec
+                checklist_keys.append(self.ctx_linear_keys[1](torch.mul(ctx_kv[1], check_vec)))
+                ctx_key = torch.cat(checklist_keys, dim=1)
+            else:
+                ctx_key = torch.cat([linear(kv) for linear, kv in zip(self.ctx_linear_keys, ctx_kv)], dim=1)
             ctx_value = torch.cat([linear(kv) for linear, kv in zip(self.ctx_linear_values, ctx_kv)], dim=1)
 
         self_len = self_key.size(1) # Need to do this again to include the layer_cache length 

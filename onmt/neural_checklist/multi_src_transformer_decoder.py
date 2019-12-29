@@ -1,5 +1,6 @@
 import torch
 from torch import nn
+import torch.nn.functional as F
 
 from .transformer_GPT_decoder_layer_multi_psa import TransformerGPTDecoderLayerMultiPSA
 
@@ -11,7 +12,7 @@ class MultiSrcTransformerDecoder(nn.Module):
                  copy_attn, self_attn_type, dropout, attn_dropout, embeddings,
                  max_relative_positions, use_GPT_version_psa, use_GPT_version_multi_psa,
                  use_GPT_version_unconditional, use_GPT_version_ctxattn,
-                 ctx_weight_param, num_src):
+                 ctx_weight_param, num_src, checklist):
         super(MultiSrcTransformerDecoder, self).__init__()
 
         self.embeddings = embeddings
@@ -38,6 +39,8 @@ class MultiSrcTransformerDecoder(nn.Module):
         self._copy = copy_attn
         self.layer_norm = nn.LayerNorm(d_model, eps=1e-6)
 
+        self.checklist = checklist
+
     @classmethod
     def from_opt(cls, opt, embeddings):
         """Alternate constructor."""
@@ -57,12 +60,25 @@ class MultiSrcTransformerDecoder(nn.Module):
             opt.use_GPT_version_unconditional,
             opt.use_GPT_version_ctxattn,
             opt.ctx_weight_param,
-            opt.num_src)
+            opt.num_src,
+            opt.checklist)
 
     def init_state(self, src, memory_bank, enc_hidden):
         """Initialize decoder state."""
         self.state["src"] = src
         self.state["cache"] = None
+        self.state["check_vec"] = None
+        if self.checklist:
+            self.state["check_vec"] = torch.ones_like(src[1], dtype=torch.float)
+
+    def update_check_vec(self, log_probs):
+        """
+        Args: log_probs: (Tensor): tgt_len * batch * vocab_size.
+            scores are before softmax
+        """
+        log_probs = F.softmax(log_probs, dim=2)
+        log_probs = log_probs.sum(0).transpose(1, 0)
+        self.state["check_vec"] = self.state["check_vec"] - log_probs.gather(0, self.state["src"][1].squeeze(2)).unsqueeze(2)
 
     def map_state(self, fn):
         def _recursive_map(struct, batch_dim=0):
@@ -78,6 +94,8 @@ class MultiSrcTransformerDecoder(nn.Module):
                 self.state["src"][i] = fn(self.state["src"][i], 1)
         if self.state["cache"] is not None:
             _recursive_map(self.state["cache"])
+        if self.checklist and self.state["check_vec"] is not None:
+            self.state["check_vec"] = fn(self.state["check_vec"], 1)
 
     def detach_state(self):
         for i in range(len(self.state["src"])):
@@ -107,6 +125,10 @@ class MultiSrcTransformerDecoder(nn.Module):
         for memory_bank in memory_banks:
             src_memory_bank.append(memory_bank.transpose(0, 1).contiguous())
 
+        check_vec = None
+        if self.state["check_vec"] is not None:
+            check_vec = self.state["check_vec"].transpose(0, 1)
+
         tgt_words = tgt[:, :, 0].transpose(0, 1)
         tgt_pad_mask = tgt_words.data.eq(pad_idx).unsqueeze(1)  # [B, 1, T_tgt]
 
@@ -124,7 +146,8 @@ class MultiSrcTransformerDecoder(nn.Module):
                     tgt_pad_mask,
                     layer_cache=layer_cache,
                     step=step,
-                    evaluate_attns=True)
+                    evaluate_attns=True,
+                    check_vec=check_vec)
                 all_attns_full.append(all_attns)
             else:
                 output, attn = layer(
@@ -133,7 +156,8 @@ class MultiSrcTransformerDecoder(nn.Module):
                     src_pad_mask,
                     tgt_pad_mask,
                     layer_cache=layer_cache,
-                    step=step)
+                    step=step,
+                    check_vec=check_vec)
 
         output = self.layer_norm(output)
         dec_outs = output.transpose(0, 1).contiguous()

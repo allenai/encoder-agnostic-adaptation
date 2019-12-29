@@ -275,7 +275,7 @@ def model_opts(parser):
               help="Using grayscale image can training "
                    "model faster and smaller")
 
-     # Agenda Items
+    # Agenda Options
     group.add('--agenda_position_encoding', '-agenda_position_encoding', action='store_true',
               help="Use a sin to mark relative words positions. "
                    "Necessary for non-RNN style models.")
@@ -287,6 +287,8 @@ def model_opts(parser):
               help="Use learned position encoding for decoder.")
     group.add('--agenda_position_encoding_ctxsize', '-agenda_position_encoding_ctxsize', type=int, default=1024,
               help="Maximum context size for transformer")
+    group.add('--checklist', '-checklist', action='store_true',
+              help="Whether to maintain a checklist vector")
 
 def preprocess_opts(parser):
     """ Pre-procesing options """
@@ -833,9 +835,13 @@ def translate_opts(parser):
               help='Window stride for spectrogram in seconds')
     group.add('--window', '-window', default='hamming',
               help='Window type for spectrogram generation')
+
+    # Agenda Options
     group.add('--agenda', '-agenda',
               help="Agenda Items to decode (one line per "
                    "sequence)")
+    group.add('--checklist', '-checklist', action='store_true',
+              help="Whether to maintain a checklist vector")
 
 
 # Copyright 2016 The Chromium Authors. All rights reserved.

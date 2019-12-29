@@ -66,7 +66,8 @@ def build_trainer(opt, device_id, model, fields, optim, model_saver=None):
                            model_dtype=opt.model_dtype,
                            earlystopper=earlystopper,
                            gpt2_params_std=opt.gpt2_params_std,
-                           use_agenda=opt.include_agenda)
+                           use_agenda=opt.include_agenda,
+                           checklist=opt.checklist)
     return trainer
 
 
@@ -100,7 +101,7 @@ class Trainer(object):
                  norm_method="sents", grad_accum_count=1, n_gpu=1, gpu_rank=1,
                  gpu_verbose_level=0, report_manager=None, model_saver=None,
                  average_decay=0, average_every=1, model_dtype='fp32', earlystopper=None, gpt2_params_std=-1,
-                 use_agenda=False):
+                 use_agenda=False, checklist=False):
         # Basic attributes.
         self.model = model
         self.train_loss = train_loss
@@ -123,6 +124,7 @@ class Trainer(object):
         self.earlystopper = earlystopper
         self.gpt2_params_std = gpt2_params_std
         self.use_agenda = use_agenda
+        self.checklist = checklist
 
         assert grad_accum_count > 0
         if grad_accum_count > 1:
@@ -381,7 +383,7 @@ class Trainer(object):
                 bptt = True
 
                 # 3. Compute loss.
-                loss, batch_stats = self.train_loss(
+                loss, batch_stats, log_probs = self.train_loss(
                     batch,
                     outputs,
                     attns,
@@ -389,6 +391,9 @@ class Trainer(object):
                     shard_size=self.shard_size,
                     trunc_start=j,
                     trunc_size=trunc_size)
+
+                if self.checklist:
+                    self.model.update_check_vec(log_probs)
 
                 if loss is not None:
                     self.optim.backward(loss)

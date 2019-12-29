@@ -115,7 +115,8 @@ class Translator(object):
             out_file=None,
             report_score=True,
             logger=None,
-            seed=-1):
+            seed=-1,
+            checklist=False):
         self.model = model
         self.fields = fields
         tgt_field = dict(self.fields)["tgt"].base_field
@@ -175,6 +176,8 @@ class Translator(object):
 
         self.use_filter_pred = False
         self._filter_pred = None
+
+        self.checklist = checklist
 
         # for debugging
         self.beam_trace = self.dump_beam != ""
@@ -252,7 +255,8 @@ class Translator(object):
             out_file=out_file,
             report_score=report_score,
             logger=logger,
-            seed=opt.seed)
+            seed=opt.seed,
+            checklist=opt.checklist)
 
     def _log(self, msg):
         if self.logger:
@@ -680,6 +684,10 @@ class Translator(object):
             log_probs = scores.squeeze(0).log()
             # returns [(batch_size x beam_size) , vocab ] when 1 step
             # or [ tgt_len, batch_size, vocab ] when full sentence
+
+        if self.checklist and step is not None:
+            self.model.update_check_vec(log_probs.view(-1, log_probs.size(0), log_probs.size(-1)))
+
         return log_probs, attn
 
     def _translate_batch(

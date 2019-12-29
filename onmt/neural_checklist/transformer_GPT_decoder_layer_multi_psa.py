@@ -35,7 +35,7 @@ class TransformerGPTDecoderLayerMultiPSA(nn.Module):
         #self.ctx_weight = Parameter(torch.zeros(1))
 
     def forward(self, inputs, memory_bank, src_pad_mask, tgt_pad_mask,
-                layer_cache=None, step=None, evaluate_attns=False):
+                layer_cache=None, step=None, evaluate_attns=False, check_vec=None):
         """
         Args:
             inputs (FloatTensor): ``(batch_size, 1, model_dim)``
@@ -63,7 +63,8 @@ class TransformerGPTDecoderLayerMultiPSA(nn.Module):
         input_norm = self.layer_norm_1(inputs)
 
         query, attn, all_attn_probs = self.self_attn(input_norm, memory_bank, self_mask=dec_mask,
-                                                     ctx_mask=src_pad_mask, layer_cache=layer_cache)
+                                                     ctx_mask=src_pad_mask, layer_cache=layer_cache,
+                                                     check_vec=check_vec)
 
         query = self.drop(query) + inputs
 

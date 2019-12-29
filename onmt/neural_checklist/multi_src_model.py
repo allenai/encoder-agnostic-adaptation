@@ -28,6 +28,13 @@ class MultiSrcNMTModel(nn.Module):
 
         return enc_state, memory_bank, lengths_out
 
+    def update_check_vec(self, log_probs):
+        """
+        Args: log_probs: (Tensor): tgt_len * batch * vocab_size.
+            scores are before softmax
+        """
+        self.decoder.update_check_vec(log_probs)
+
     def forward(self, srcs, tgt, length_tuples, bptt=False, **kwargs):
         """Forward propagate a `src` and `tgt` pair for training.
         Possible initialized with a beginning decoder state.

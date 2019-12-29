@@ -228,7 +228,7 @@ def build_base_model(model_opt, fields, gpu, checkpoint=None, gpu_id=None):
 
             agenda_emb = build_embeddings(agenda_opt, agenda_field)
 
-            agenda_encoder = build_encoder(model_opt, agenda_emb)
+            agenda_encoder = build_encoder(agenda_opt, agenda_emb)
             encoders = nn.ModuleList([encoder, agenda_encoder])
             model = onmt.neural_checklist.MultiSrcNMTModel(encoders, decoder)
         else:

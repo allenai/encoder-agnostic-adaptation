@@ -34,7 +34,7 @@ def main(opt):
     if opt.constraint_file:
         tag_shards = split_corpus(opt.constraint_file, opt.shard_size, iter_func=constraint_iter_func, binary=False)
 
-    translator = build_translator(opt, report_score=True)
+    translator = build_translator(opt, report_score=True, logger=logger)
 
     def create_src_shards(path, opt, binary=True):
         if opt.data_type == 'imgvec':
