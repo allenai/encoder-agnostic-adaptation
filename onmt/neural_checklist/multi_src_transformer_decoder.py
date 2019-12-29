@@ -71,14 +71,16 @@ class MultiSrcTransformerDecoder(nn.Module):
         if self.checklist:
             self.state["check_vec"] = torch.ones_like(src[1], dtype=torch.float)
 
-    def update_check_vec(self, log_probs):
+    def maybe_update_check_vec(self, log_probs):
         """
         Args: log_probs: (Tensor): tgt_len * batch * vocab_size.
             scores are before softmax
         """
-        log_probs = F.softmax(log_probs, dim=2)
-        log_probs = log_probs.sum(0).transpose(1, 0)
-        self.state["check_vec"] = self.state["check_vec"] - log_probs.gather(0, self.state["src"][1].squeeze(2)).unsqueeze(2)
+        if self.checklist:
+            assert self.state["check_vec"] is not None
+            log_probs = F.softmax(log_probs, dim=2)
+            log_probs = log_probs.sum(0).transpose(1, 0)
+            self.state["check_vec"] = self.state["check_vec"] - log_probs.gather(0, self.state["src"][1].squeeze(2)).unsqueeze(2)
 
     def map_state(self, fn):
         def _recursive_map(struct, batch_dim=0):

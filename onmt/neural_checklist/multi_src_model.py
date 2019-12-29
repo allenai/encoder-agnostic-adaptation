@@ -1,4 +1,5 @@
 """ Onmt NMT Model base class definition """
+import torch
 import torch.nn as nn
 
 
@@ -28,12 +29,12 @@ class MultiSrcNMTModel(nn.Module):
 
         return enc_state, memory_bank, lengths_out
 
-    def update_check_vec(self, log_probs):
+    def maybe_update_check_vec(self, log_probs):
         """
         Args: log_probs: (Tensor): tgt_len * batch * vocab_size.
             scores are before softmax
         """
-        self.decoder.update_check_vec(log_probs)
+        self.decoder.maybe_update_check_vec(log_probs)
 
     def forward(self, srcs, tgt, length_tuples, bptt=False, **kwargs):
         """Forward propagate a `src` and `tgt` pair for training.
@@ -60,6 +61,19 @@ class MultiSrcNMTModel(nn.Module):
         if bptt is False:
             self.decoder.init_state(srcs, memory_bank, enc_state)
 
-        dec_out, attns = self.decoder(tgt, memory_bank,
-                                      memory_lengths=lengths_out, **kwargs)
-        return dec_out, attns
+        # dec_out, attns = self.decoder(tgt, memory_bank,
+        #                               memory_lengths=lengths_out, **kwargs)
+        # dec_out: len * batch * hidden
+        # attns['std']: len * batch * src_len
+        dec_outs = []
+        for step in range(tgt.size(0)):
+            dec_out, attns = self.decoder(
+                tgt, memory_bank, memory_lengths=lengths_out, step=step
+            )
+            dec_outs.append(dec_out)
+
+            log_probs = self.generator(dec_out.squeeze(0))
+
+            self.maybe_update_check_vec(log_probs)
+
+        return torch.stack(dec_outs), attns

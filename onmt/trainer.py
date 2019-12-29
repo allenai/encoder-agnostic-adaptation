@@ -391,9 +391,7 @@ class Trainer(object):
                     shard_size=self.shard_size,
                     trunc_start=j,
                     trunc_size=trunc_size)
-
-                if self.checklist:
-                    self.model.update_check_vec(log_probs)
+                #TODO no need for the log_probs any more?!
 
                 if loss is not None:
                     self.optim.backward(loss)
