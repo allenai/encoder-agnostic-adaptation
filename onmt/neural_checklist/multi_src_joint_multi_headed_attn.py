@@ -108,7 +108,7 @@ class MultiSrcJointMultiHeadedAttention(nn.Module):
             layer_cache["self_keys"] = self_key
             layer_cache["self_values"] = self_value
 
-            if layer_cache["memory_keys"] is None:
+            if layer_cache["memory_keys"] is None or check_vec is not None:
                 if check_vec is not None:
                     # src
                     checklist_keys = [self.ctx_linear_keys[0](ctx_kv[0])]

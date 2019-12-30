@@ -27,6 +27,7 @@ def build_translator(opt, report_score=True, logger=None, out_file=None):
     load_test_model = onmt.decoders.ensemble.load_test_model \
         if len(opt.models) > 1 else onmt.model_builder.load_test_model
     fields, model, model_opt = load_test_model(opt)
+    model.decoder.checklist = True # TODO
 
     scorer = onmt.translate.GNMTGlobalScorer.from_opt(opt)
 
@@ -685,8 +686,8 @@ class Translator(object):
             # returns [(batch_size x beam_size) , vocab ] when 1 step
             # or [ tgt_len, batch_size, vocab ] when full sentence
 
-        if self.checklist and step is not None:
-            self.model.update_check_vec(log_probs.view(-1, log_probs.size(0), log_probs.size(-1)))
+        if step is not None:
+            self.model.maybe_update_check_vec(log_probs.view(-1, log_probs.size(0), log_probs.size(-1)))
 
         return log_probs, attn
 
