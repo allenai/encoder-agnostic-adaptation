@@ -975,5 +975,25 @@ class Translator(object):
             for item in items.split(' ĠSHALL '):
                 found += item.strip() in pred
                 total += 1
-        msg = f"AGENDA ACCURACY: {round(100*found/total, 2)}%. Found {found} out of {total} agenda items."
+        msg = f"AGENDA ACCURACY: {round(100*found/total, 2)}%. Found {found} full items out of {total} agenda items.\n"
+
+        found, total = 0, 0
+        for pred, items in zip(outputs, agenda):
+            for item in items.split(' ĠSHALL '):
+                word = item.split('Ġ')[-1].replace(" ", "").replace("\n", "")
+                found += word in pred
+                total += 1
+        msg += f"AGENDA ACCURACY LAST WORD: {round(100*found/total, 2)}%. Found {found} out of {total} agenda items.\n"
+
+        found, total = 0, 0
+        for pred, items in zip(outputs, agenda):
+            for item in items.split(' ĠSHALL '):
+                for word in item.split('Ġ'):
+                    clean_word = word.replace(" ", "").replace("\n", "")
+                    if clean_word == '': continue
+                    if clean_word in pred:
+                        found += 1
+                        break
+                total += 1
+        msg += f"AGENDA ACCURACY ANY WORD: {round(100*found/total, 2)}%. Found {found} out of {total} agenda items.\n"
         return msg

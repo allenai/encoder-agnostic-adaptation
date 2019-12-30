@@ -1,3 +1,5 @@
+set -e
+
 gpu=0;
 beam_size=1;
 random_sampling_topk=10;
@@ -34,7 +36,8 @@ python translate.py \
     -random_sampling_topk $random_sampling_topk \
     -random_sampling_temp $random_sampling_temp \
     -output $output_file \
-    -gpu $gpu
+    -gpu $gpu \
+    -log_file "${output_file}.log"
 
 python gpt2/decode_text.py \
     --src $output_file \
