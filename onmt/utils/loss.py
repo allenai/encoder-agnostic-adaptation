@@ -49,7 +49,12 @@ def build_loss_compute(model, tgt_field, opt, train=True, **kwargs):
     # loss function of this kind is the sparsemax loss.
     use_raw_logits = isinstance(criterion, SparsemaxLoss)
     loss_gen = model.generator[0] if use_raw_logits else model.generator
-    if opt.copy_attn:
+    if opt.copy_attn and opt.include_agenda:
+        compute = onmt.neural_checklist.agenda_copy_generator.CopyGeneratorWithAgendaLossCompute(
+            criterion, loss_gen, tgt_field.vocab, opt.copy_loss_by_seqlength,
+            ptrs_loss=opt.use_copy_ptrs
+        )
+    elif opt.copy_attn:
         compute = onmt.modules.CopyGeneratorLossCompute(
             criterion, loss_gen, tgt_field.vocab, opt.copy_loss_by_seqlength,
             ptrs_loss=opt.use_copy_ptrs
@@ -295,49 +300,6 @@ class FirstFourLossCompute(NMTLossCompute):
         num_correct_of_first_4 = pred.eq(target.view(-1)).masked_select(first_tokens_to_check_masking.view(-1)).sum().item()
         return onmt.utils.Statistics(loss.item(), num_non_padding, num_correct, num_correct_of_first_4, first_tokens_to_check_masking.sum().item())
 
-class AgendaTokensLossCompute(NMTLossCompute):
-
-    def __init__(self, criterion, loss_gen, tgt_vocab):
-        super(AgendaTokensLossCompute, self).__init__(criterion, loss_gen)
-        self.vocab = tgt_vocab
-
-    def _compute_loss(self, batch, output, target):
-        bottled_output = self._bottle(output)
-
-        scores = self.generator(bottled_output)
-        gtruth = target.view(-1)
-
-        loss = self.criterion(scores, gtruth)
-        stats = self._stats(loss.clone(), scores, target, batch)
-        return loss, stats
-
-    def _stats(self, loss, scores, target, batch):
-        """
-        Args:
-            loss (:obj:`FloatTensor`): the loss computed by the loss criterion.
-            scores (:obj:`FloatTensor`): a score for each possible output
-            target (:obj:`FloatTensor`): true targets
-
-        Returns:
-            :obj:`onmt.utils.Statistics` : statistics for this batch.
-        """
-        pred = scores.max(1)[1]
-        non_padding = target.view(-1).ne(self.padding_idx)
-        num_correct = pred.eq(target.view(-1)).masked_select(non_padding).sum().item()
-        num_non_padding = non_padding.sum().item()
-
-        agenda_items_found, total_items = 0, 0
-
-        max_length = batch.tgt.size(0) - 1
-        non_padding_pred = pred.ne(self.padding_idx)
-        agenda0 = batch.agenda[0][0, :, 0]
-        agenda1 = batch.agenda[0][2, :, 0]
-        for agenda_token in [agenda0, agenda1]:
-            expended_agenda_items = agenda_token.expand(max_length, -1)
-            agenda_items_found += pred.view(max_length, -1).eq(expended_agenda_items).view(-1).masked_select(non_padding_pred).sum().item()
-            total_items += agenda_token.view(-1).ne(self.padding_idx).sum().item()
-        return onmt.utils.Statistics(loss.item(), num_non_padding, num_correct, n_correct_agenda=agenda_items_found, n_non_padding_agenda=total_items)
-
 class MultiTokensAgendaTokensLossCompute(NMTLossCompute):
 
     def __init__(self, criterion, loss_gen, tgt_vocab):
@@ -354,6 +316,7 @@ class MultiTokensAgendaTokensLossCompute(NMTLossCompute):
         stats = self._stats(loss.clone(), scores, target, batch)
         return loss, stats
 
+    # TODO: this code is duplicated with agenda_copy_generator
     def _stats(self, loss, scores, target, batch):
         """
         Args:
@@ -382,6 +345,7 @@ class MultiTokensAgendaTokensLossCompute(NMTLossCompute):
 
         return onmt.utils.Statistics(loss.item(), num_non_padding, num_correct, n_correct_agenda=n_correct_agenda, n_non_padding_agenda=n_non_padding_agenda)
 
+    # TODO: this code is duplicated with agenda_copy_generator
     def _find_non_padding_items(self, items):
         ret_items = []
         inside_outside_item = 'o'
@@ -397,6 +361,7 @@ class MultiTokensAgendaTokensLossCompute(NMTLossCompute):
 
         return ret_items
 
+    # TODO: this code is duplicated with agenda_copy_generator
     def _search_for_full_item(self, pred, item):
         found = 0
         starts = (pred == item[0]).nonzero().squeeze(1)
