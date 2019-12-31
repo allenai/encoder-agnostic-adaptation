@@ -48,7 +48,6 @@ gpu_ranks:
 tensorboard: 'true'
 
 
-use_GPT_version_multi_psa: 'true'
 num_src: 2
 include_agenda: 'true'
 decoder_type: 'multi_src_transformer'

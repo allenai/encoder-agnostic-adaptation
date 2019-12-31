@@ -9,7 +9,7 @@ from onmt.modules.average_attn import AverageAttention
 class MultiSrcTransformerDecoder(nn.Module):
     def __init__(self, num_layers, d_model, heads, d_ff,
                  copy_attn, self_attn_type, dropout, attn_dropout, embeddings,
-                 max_relative_positions, use_GPT_version_psa, use_GPT_version_multi_psa,
+                 max_relative_positions, use_GPT_version_psa,
                  use_GPT_version_unconditional, use_GPT_version_ctxattn,
                  ctx_weight_param, num_src):
         super(MultiSrcTransformerDecoder, self).__init__()
@@ -20,7 +20,6 @@ class MultiSrcTransformerDecoder(nn.Module):
         self.state = {}
         
         kwargs = {}
-        assert use_GPT_version_multi_psa
         layer_cls = TransformerGPTDecoderLayerMultiPSA
         kwargs['ctx_weight_param'] = ctx_weight_param
         kwargs['num_src'] = num_src
@@ -53,7 +52,6 @@ class MultiSrcTransformerDecoder(nn.Module):
             embeddings,
             opt.max_relative_positions,
             opt.use_GPT_version_psa,
-            opt.use_GPT_version_multi_psa,
             opt.use_GPT_version_unconditional,
             opt.use_GPT_version_ctxattn,
             opt.ctx_weight_param,

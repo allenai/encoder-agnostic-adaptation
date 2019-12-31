@@ -80,10 +80,11 @@ class ArgumentParser(cfargparse.ArgumentParser):
             raise AssertionError('It does not make sense to share position embeddings if '
                                  'they are not learned')
         if int(model_opt.use_GPT_version_psa) + int(model_opt.use_GPT_version_unconditional) + \
-           int(model_opt.use_GPT_version_ctxattn)> 1:
+           int(model_opt.use_GPT_version_ctxattn) + int(model_opt.decoder_type == 'multi_src_transformer')> 1:
             raise AssertionError('At most one of use_GPT_version, use_GPT_version_alt, '
                                  'use_GPT_version_psa, use_GPT_version_unconditional, '
-                                 'use_GPT_version_ctxattn can be true at the same time')
+                                 'use_GPT_version_ctxattn can be true at the same time. '
+                                 'Or, multi_src_transformer has a specific psa version')
 
         if model_opt.simple_fusion and model_opt.gpt2_params_path is None:
             raise AssertionError('Simple fusion requires setting the gpt2_params_path option')
@@ -99,8 +100,8 @@ class ArgumentParser(cfargparse.ArgumentParser):
             raise AssertionError('loading GPT weights for seq2seq initialization AND GPT '
                                  'probably does not make sense')
 
-        if model_opt.use_GPT_version_multi_psa and model_opt.num_src < 1:
-            raise AssertionError('using GSA with multiple sources. no point in passing num_src < 1. '
+        if model_opt.decoder_type == 'multi_src_transformer' and model_opt.num_src < 1:
+            raise AssertionError('using GPT with multiple sources. no point in passing num_src < 1. '
                                  'You really want to use num_src=1 only when debugging.')
 
     @classmethod
