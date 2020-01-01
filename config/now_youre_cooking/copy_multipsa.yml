@@ -1,4 +1,4 @@
-data: data/now_youre_cooking/tiny/BPE_COPY
+data: data/now_youre_cooking/BPE_COPY
 save_checkpoint_steps: 500
 keep_checkpoint: 2
 seed: 123
