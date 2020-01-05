@@ -41,7 +41,7 @@ python translate.py \
     -gpu $gpu \
     -log_file "${output_file}.log" \
     -coverage_penalty $coverage_penalty \
-    -beta 0.9
+    -beta $beta
 
 python gpt2/decode_text.py \
     --src $output_file \

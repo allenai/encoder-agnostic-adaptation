@@ -98,7 +98,7 @@ class PenaltyBuilder(object):
         missing_agenda_penalty = missing_agenda_penalty[:, :, -mask.size(1):] #Don't use non agenda
         missing_agenda_penalty = missing_agenda_penalty * mask #Don't use padding
         missing_agenda_penalty = missing_agenda_penalty.sum(-1)
-        missing_agenda_penalty -= mask.size(-1)
+        missing_agenda_penalty /= mask.sum(1)
         missing_agenda_penalty = beta * missing_agenda_penalty #TODO, have different HP
         return cov_penalty + missing_agenda_penalty
 
