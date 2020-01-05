@@ -274,6 +274,10 @@ class BeamSearch(DecodeStrategy):
                     .view(1, _B_old, self.beam_size, inp_seq_len) \
                     .index_select(1, non_finished) \
                     .view(1, _B_new * self.beam_size, inp_seq_len)
+                self._agenda_mask = self._agenda_mask \
+                    .view(1, _B_old, self.beam_size, -1) \
+                    .index_select(1, non_finished) \
+                    .view(1, _B_new * self.beam_size, -1)
                 if self._stepwise_cov_pen:
                     self._prev_penalty = self._prev_penalty.index_select(
                         0, non_finished)
