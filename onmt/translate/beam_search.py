@@ -123,7 +123,7 @@ class BeamSearch(DecodeStrategy):
         if self._stepwise_cov_pen and self._prev_penalty is not None:
             self.topk_log_probs += self._prev_penalty
             self.topk_log_probs -= self.global_scorer.cov_penalty(
-                self._coverage + attn, self.global_scorer.beta).view(
+                self._coverage + attn, mask=self._agenda_mask, beta=self.global_scorer.beta).view(
                 _B, self.beam_size)
 
         # force the output to be longer than self.min_length
@@ -180,18 +180,22 @@ class BeamSearch(DecodeStrategy):
                         1, self.select_indices)
                     self._coverage += current_attn
                     self._prev_penalty = self.global_scorer.cov_penalty(
-                        self._coverage, beta=self.global_scorer.beta).view(
+                        self._coverage, mask=self._agenda_mask, beta=self.global_scorer.beta).view(
                             _B, self.beam_size)
 
         if self._vanilla_cov_pen:
             # shape: (batch_size x beam_size, 1)
             cov_penalty = self.global_scorer.cov_penalty(
                 self._coverage,
+                mask=self._agenda_mask,
                 beta=self.global_scorer.beta)
             self.topk_scores -= cov_penalty.view(_B, self.beam_size)
 
         self.is_finished = self.topk_ids.eq(self.eos)
         self.ensure_max_length()
+
+    def update_agenda_mask(self, mask):
+        self._agenda_mask = mask
 
     def update_finished(self):
         # Penalize beams that finished.
@@ -208,16 +212,24 @@ class BeamSearch(DecodeStrategy):
                 step - 1, _B_old, self.beam_size, self.alive_attn.size(-1))
             if self.alive_attn is not None else None)
         non_finished_batch = []
+        longest_context = torch.max(self._memory_lengths[0])
         for i in range(self.is_finished.size(0)):
             b = self._batch_offset[i]
             finished_hyp = self.is_finished[i].nonzero().view(-1)
             # Store finished hypotheses for this batch.
             for j in finished_hyp:
-                self.hypotheses[b].append((
-                    self.topk_scores[i, j],
-                    predictions[i, j, 1:],  # Ignore start_token.
-                    attention[:, i, j, :self._memory_lengths[i]]
-                    if attention is not None else None))
+                if isinstance(self._memory_lengths, list):
+                    self.hypotheses[b].append((
+                        self.topk_scores[i, j],
+                        predictions[i, j, 1:],  # Ignore start_token.
+                        torch.cat((attention[:, i, j, :self._memory_lengths[0][i]], attention[:, i, j, longest_context: longest_context + self._memory_lengths[1][i]]), 1)
+                        if attention is not None else None))
+                else:
+                    self.hypotheses[b].append((
+                        self.topk_scores[i, j],
+                        predictions[i, j, 1:],  # Ignore start_token.
+                        attention[:, i, j, :self._memory_lengths[i]]
+                        if attention is not None else None))
             # End condition is the top beam finished and we can return
             # n_best hypotheses.
             if self.top_beam_finished[i] and len(

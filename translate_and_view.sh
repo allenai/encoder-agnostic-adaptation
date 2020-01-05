@@ -5,7 +5,7 @@ beam_size=1;
 random_sampling_topk=10;
 random_sampling_temp=1;
 
-while getopts m:s:t:a:l:n:o:b:k:p:g: option
+while getopts m:s:t:a:l:n:o:b:k:p:g:c:d: option
 do
 case "${option}"
 in
@@ -19,11 +19,13 @@ o) output=${OPTARG};;
 b) beam_size=${OPTARG};;
 k) random_sampling_topk=${OPTARG};;
 p) random_sampling_temp=${OPTARG};;
+c) coverage_penalty=${OPTARG};;
+d) beta=${OPTARG};;
 g) gpu=${OPTARG};;
 esac
 done
 
-output_file="${output}-b${beam_size}-topk${random_sampling_topk}-topp${random_sampling_temp}-min${min_length}-max${max_length}.txt"
+output_file="${output}-b${beam_size}-topk${random_sampling_topk}-topp${random_sampling_temp}-min${min_length}-max${max_length}-${coverage_penalty}-beta${beta}.txt"
 
 python translate.py \
     -beam_size $beam_size \
@@ -37,7 +39,9 @@ python translate.py \
     -random_sampling_temp $random_sampling_temp \
     -output $output_file \
     -gpu $gpu \
-    -log_file "${output_file}.log"
+    -log_file "${output_file}.log" \
+    -coverage_penalty $coverage_penalty \
+    -beta 0.9
 
 python gpt2/decode_text.py \
     --src $output_file \

@@ -775,7 +775,7 @@ def translate_opts(parser):
               choices=['none', 'wu', 'avg'],
               help="Length Penalty to use.")
     group.add('--coverage_penalty', '-coverage_penalty', default='none',
-              choices=['none', 'wu', 'summary'],
+              choices=['none', 'wu', 'summary', 'agenda_tokens', 'full_agenda_tokens'],
               help="Coverage Penalty to use.")
     group.add('--alpha', '-alpha', type=float, default=0.,
               help="Google NMT length penalty parameter "
