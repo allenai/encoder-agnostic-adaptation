@@ -41,7 +41,7 @@ def _dynamic_dict(example, src_field, tgt_field, pointers=None):
         torchtext.data.Vocab and ``example``, changed as described.
     """
 
-    src = src_field.tokenize(example["src"])
+    src = src_field.tokenize(example["agenda"]) # At the time being I prefer it to copy from agenda.
     # make a small vocab containing just the tokens in the source sequence
     unk = src_field.unk_token
     pad = src_field.pad_token

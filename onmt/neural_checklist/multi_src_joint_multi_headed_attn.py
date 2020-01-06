@@ -193,7 +193,7 @@ class MultiSrcJointMultiHeadedAttention(nn.Module):
 
         # Return one attn (to context)
         ctx_attn_probs = attn[:, :, :, self_len:]
-        ctx_attn_probs = ctx_attn_probs/ctx_attn_probs.sum(dim=-1, keepdim=True)
+        ctx_attn_probs = ctx_attn_probs/(ctx_attn_probs.sum(dim=-1, keepdim=True) + 1e-20)
 
         top_attn = ctx_attn_probs \
             .view(batch_size, head_count,

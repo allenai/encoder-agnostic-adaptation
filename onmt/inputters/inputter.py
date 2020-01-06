@@ -40,6 +40,7 @@ Vocab.__setstate__ = _setstate
 
 
 def make_src(data, vocab):
+    # This is basically one hot encoding of data in the batch vocab dimension.
     src_size = max([t.size(0) for t in data])
     src_vocab_size = max([t.max() for t in data]) + 1
     alignment = torch.zeros(src_size, len(data), src_vocab_size)

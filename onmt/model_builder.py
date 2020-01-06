@@ -16,6 +16,7 @@ from onmt.encoders import str2enc
 from onmt.decoders import str2dec
 
 from onmt.modules import Embeddings, CopyGenerator, SimpleFusionGenerator
+from onmt.neural_checklist.agenda_copy_generator import AgendaCopyGenerator
 from onmt.modules.util_class import Cast
 from onmt.utils.misc import use_gpu
 from onmt.utils.logging import logger
@@ -253,6 +254,14 @@ def build_base_model(model_opt, fields, gpu, checkpoint=None, gpu_id=None):
             if model_opt.share_decoder_embeddings:
                 generator[0].weight = decoder.embeddings.word_lut.weight
             gen_linear = generator[0]
+        elif model_opt.copy_attn and model_opt.include_agenda:
+            tgt_base_field = fields["tgt"].base_field
+            vocab_size = len(tgt_base_field.vocab)
+            pad_idx = tgt_base_field.vocab.stoi[tgt_base_field.pad_token]
+            generator = AgendaCopyGenerator(model_opt.dec_rnn_size, vocab_size, pad_idx)
+            if model_opt.share_decoder_embeddings:
+                generator.linear.weight = decoder.embeddings.word_lut.weight
+            gen_linear = generator.linear
         else:
             tgt_base_field = fields["tgt"].base_field
             vocab_size = len(tgt_base_field.vocab)

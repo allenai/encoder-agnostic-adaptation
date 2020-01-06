@@ -208,16 +208,24 @@ class BeamSearch(DecodeStrategy):
                 step - 1, _B_old, self.beam_size, self.alive_attn.size(-1))
             if self.alive_attn is not None else None)
         non_finished_batch = []
+        longest_context = torch.max(self._memory_lengths[0])
         for i in range(self.is_finished.size(0)):
             b = self._batch_offset[i]
             finished_hyp = self.is_finished[i].nonzero().view(-1)
             # Store finished hypotheses for this batch.
             for j in finished_hyp:
-                self.hypotheses[b].append((
-                    self.topk_scores[i, j],
-                    predictions[i, j, 1:],  # Ignore start_token.
-                    attention[:, i, j, :self._memory_lengths[i]]
-                    if attention is not None else None))
+                if isinstance(self._memory_lengths, list):
+                    self.hypotheses[b].append((
+                        self.topk_scores[i, j],
+                        predictions[i, j, 1:],  # Ignore start_token.
+                        torch.cat((attention[:, i, j, :self._memory_lengths[0][i]], attention[:, i, j, longest_context: longest_context + self._memory_lengths[1][i]]), 1)
+                        if attention is not None else None))
+                else:
+                    self.hypotheses[b].append((
+                        self.topk_scores[i, j],
+                        predictions[i, j, 1:],  # Ignore start_token.
+                        attention[:, i, j, :self._memory_lengths[i]]
+                        if attention is not None else None))
             # End condition is the top beam finished and we can return
             # n_best hypotheses.
             if self.top_beam_finished[i] and len(
