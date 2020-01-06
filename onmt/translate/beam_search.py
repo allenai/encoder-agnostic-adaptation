@@ -123,7 +123,7 @@ class BeamSearch(DecodeStrategy):
         if self._stepwise_cov_pen and self._prev_penalty is not None:
             self.topk_log_probs += self._prev_penalty
             self.topk_log_probs -= self.global_scorer.cov_penalty(
-                self._coverage + attn, self.global_scorer.beta).view(
+                self._coverage + attn, mask=self._agenda_mask, beta=self.global_scorer.beta).view(
                 _B, self.beam_size)
 
         # force the output to be longer than self.min_length
@@ -180,18 +180,22 @@ class BeamSearch(DecodeStrategy):
                         1, self.select_indices)
                     self._coverage += current_attn
                     self._prev_penalty = self.global_scorer.cov_penalty(
-                        self._coverage, beta=self.global_scorer.beta).view(
+                        self._coverage, mask=self._agenda_mask, beta=self.global_scorer.beta).view(
                             _B, self.beam_size)
 
         if self._vanilla_cov_pen:
             # shape: (batch_size x beam_size, 1)
             cov_penalty = self.global_scorer.cov_penalty(
                 self._coverage,
+                mask=self._agenda_mask,
                 beta=self.global_scorer.beta)
             self.topk_scores -= cov_penalty.view(_B, self.beam_size)
 
         self.is_finished = self.topk_ids.eq(self.eos)
         self.ensure_max_length()
+
+    def update_agenda_mask(self, mask):
+        self._agenda_mask = mask
 
     def update_finished(self):
         # Penalize beams that finished.
@@ -270,6 +274,10 @@ class BeamSearch(DecodeStrategy):
                     .view(1, _B_old, self.beam_size, inp_seq_len) \
                     .index_select(1, non_finished) \
                     .view(1, _B_new * self.beam_size, inp_seq_len)
+                self._agenda_mask = self._agenda_mask \
+                    .view(1, _B_old, self.beam_size, -1) \
+                    .index_select(1, non_finished) \
+                    .view(_B_new * self.beam_size, -1)
                 if self._stepwise_cov_pen:
                     self._prev_penalty = self._prev_penalty.index_select(
                         0, non_finished)

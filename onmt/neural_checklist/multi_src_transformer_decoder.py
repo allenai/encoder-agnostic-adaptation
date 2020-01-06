@@ -5,8 +5,9 @@ from .transformer_GPT_decoder_layer_multi_psa import TransformerGPTDecoderLayerM
 
 from onmt.decoders.transformer import TransformerDecoder
 from onmt.modules.average_attn import AverageAttention
+from onmt.decoders.decoder import DecoderBase
 
-class MultiSrcTransformerDecoder(nn.Module):
+class MultiSrcTransformerDecoder(DecoderBase):
     def __init__(self, num_layers, d_model, heads, d_ff,
                  copy_attn, self_attn_type, dropout, attn_dropout, embeddings,
                  max_relative_positions, use_GPT_version_psa,

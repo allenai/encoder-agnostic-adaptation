@@ -37,6 +37,10 @@ class PenaltyBuilder(object):
             return self.coverage_wu
         elif cov_pen == "summary":
             return self.coverage_summary
+        elif cov_pen == "agenda_tokens":
+            return self.coverage_agenda_tokens_penalty
+        elif cov_pen == "full_agenda_tokens":
+            return self.coverage_full_agenda_tokens_penalty
         elif self._pen_is_none(cov_pen):
             return self.coverage_none
         else:
@@ -58,7 +62,7 @@ class PenaltyBuilder(object):
     # Subtract coverage penalty from topk log probs.
     # Divide topk log probs by length penalty.
 
-    def coverage_wu(self, cov, beta=0.):
+    def coverage_wu(self, cov, beta=0., mask=None):
         """GNMT coverage re-ranking score.
 
         See "Google's Neural Machine Translation System" :cite:`wu2016google`.
@@ -71,19 +75,57 @@ class PenaltyBuilder(object):
         penalty = -torch.min(cov, cov.clone().fill_(1.0)).log().sum(-1)
         return beta * penalty
 
-    def coverage_summary(self, cov, beta=0.):
+    def coverage_summary(self, cov, beta=0., mask=None):
         """Our summary penalty."""
         penalty = torch.max(cov, cov.clone().fill_(1.0)).sum(-1)
         penalty -= cov.size(-1)
         return beta * penalty
 
-    def coverage_none(self, cov, beta=0.):
+    def coverage_none(self, cov, beta=0., mask=None):
         """Returns zero as penalty"""
         none = torch.zeros((1,), device=cov.device,
                            dtype=torch.float)
         if cov.dim() == 3:
             none = none.unsqueeze(0)
         return none
+
+    def coverage_agenda_tokens_penalty(self, cov, beta=0., mask=None):
+        cov_penalty = torch.max(cov, cov.clone().fill_(1.0)).sum(-1)
+        cov_penalty -= cov.size(-1)
+        cov_penalty = beta * cov_penalty
+
+        missing_agenda_penalty = torch.max(1 - cov, cov.clone().fill_(0.0))
+        missing_agenda_penalty = missing_agenda_penalty[:, :, -mask.size(1):] #Don't use non agenda
+        missing_agenda_penalty = missing_agenda_penalty * mask #Don't use padding
+        missing_agenda_penalty = missing_agenda_penalty.sum(-1)
+        missing_agenda_penalty /= mask.sum(1)
+        missing_agenda_penalty = beta * missing_agenda_penalty #TODO, have different HP
+        return cov_penalty + missing_agenda_penalty
+
+    def coverage_full_agenda_tokens_penalty(self, cov, beta=0., mask=None):
+        #TODO untestes yet, and pretty slow
+        cov_penalty = torch.max(cov, cov.clone().fill_(1.0)).sum(-1)
+        cov_penalty -= cov.size(-1)
+        cov_penalty = beta * cov_penalty
+
+        missing_agenda_penalty = torch.max(1 - cov, cov.clone().fill_(0.0))
+        missing_agenda_penalty = missing_agenda_penalty[:, :, -mask.size(1):] #Don't use non agenda
+        missing_agenda_penalty = missing_agenda_penalty * mask #Don't use padding
+        missing_agenda_penalty /= mask.sum(1, keepdim=True)
+
+        total_attn_penalty = torch.zeros_like(cov_penalty).squeeze(0)
+        agenda_cov = cov[:, :, -mask.size(1):]
+        for b in range(agenda_cov.size(1)):
+            curr_item_prob = 1
+            for c in range(agenda_cov.size(2)):
+                if mask[b, c]:
+                    curr_item_prob *= agenda_cov[0, b, c]
+                else:
+                    total_attn_penalty[b] += curr_item_prob
+                    curr_item_prob = 1
+
+        total_attn_penalty = beta * total_attn_penalty
+        return cov_penalty + total_attn_penalty
 
     def length_wu(self, cur_len, alpha=0.):
         """GNMT length re-ranking score.
