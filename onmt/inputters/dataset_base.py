@@ -79,8 +79,6 @@ def _dynamic_dict(example, src_field, tgt_field, pointers=None):
             example["alignment"] = mask
             #TODO, for my case, alignment should be like the previous alignment
             # because I want to copy everything that is in the agenda
-            # wait, is this the agenda or the context?
-            # If indeed agenda, when did I pass the agenda here?
 
             max_len = 0
             line_tuples = []

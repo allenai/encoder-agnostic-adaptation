@@ -21,7 +21,9 @@ class Statistics(object):
                 n_correct_of_first_4=0,
                 n_non_padding_first_4=0,
                 n_correct_agenda=0,
-                n_non_padding_agenda=0):
+                n_non_padding_agenda=0,
+                switch_loss=0,
+                n_copied_tokens=0):
         self.loss = loss
         self.n_words = n_words
         self.n_correct = n_correct
@@ -31,6 +33,8 @@ class Statistics(object):
         self.n_non_padding_agenda = n_non_padding_agenda
         self.n_src_words = 0
         self.start_time = time.time()
+        self.switch_loss = switch_loss
+        self.n_copied_tokens = n_copied_tokens
 
     @staticmethod
     def all_gather_stats(stat, max_size=4096):
@@ -93,6 +97,8 @@ class Statistics(object):
         self.n_non_padding_first_4 += stat.n_non_padding_first_4
         self.n_correct_agenda += stat.n_correct_agenda
         self.n_non_padding_agenda += stat.n_non_padding_agenda
+        self.switch_loss += stat.switch_loss
+        self.n_copied_tokens += stat.n_copied_tokens
 
         if update_n_src_words:
             self.n_src_words += stat.n_src_words
@@ -116,6 +122,14 @@ class Statistics(object):
     def agenda_accuracy(self):
         if self.has_agenda_logs():
             return 100 * (self.n_correct_agenda / self.n_non_padding_agenda)
+        return 0
+
+    def has_switch_loss_logs(self):
+        return self.switch_loss != 0
+
+    def switch_loss_mean(self):
+        if self.has_switch_loss_logs():
+            return self.switch_loss / self.n_copied_tokens
         return 0
 
     def xent(self):
@@ -156,6 +170,8 @@ class Statistics(object):
             log_message += " first_4_acc: %6.2f;" % self.first_4_accuracy()
         if self.has_agenda_logs():
             log_message += " agenda_acc: %6.2f;" % self.agenda_accuracy()
+        if self.has_switch_loss_logs():
+            log_message += " switch_loss: %6.2f;" % self.switch_loss_mean()
 
         logger.info(log_message)
         sys.stdout.flush()
@@ -170,5 +186,7 @@ class Statistics(object):
             writer.add_scalar(prefix + "/first_4_accuracy", self.first_4_accuracy(), step)
         if self.n_non_padding_agenda > 0:
             writer.add_scalar(prefix + "/agenda_accuracy", self.agenda_accuracy(), step)
+        if self.n_copied_tokens > 0:
+            writer.add_scalar(prefix + "/switch_loss_mean", self.switch_loss_mean(), step)
         writer.add_scalar(prefix + "/tgtper", self.n_words / t, step)
         writer.add_scalar(prefix + "/lr", learning_rate, step)

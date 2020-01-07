@@ -172,6 +172,8 @@ class CopyGeneratorWithAgendaLossCompute(LossComputeBase):
         if self.ptrs_loss:
             # align needs to be bigger than 1 to be encouraged.
             switch_loss = self.switch_loss_criterion(p_copy, align.ne(0).float().view(-1, 1))
+        else:
+            switch_loss = 0
 
         # this block does not depend on the loss value computed above
         # and is used only for stats
@@ -192,7 +194,7 @@ class CopyGeneratorWithAgendaLossCompute(LossComputeBase):
         target_data[correct_mask] += offset_align
 
         # Compute sum of perplexities for stats
-        stats = self._stats(loss.sum().clone(), scores_data, target_data, batch)
+        stats = self._stats(loss.sum().clone(), scores_data, target_data, batch, switch_loss.sum().clone(), align.ne(0).sum())
 
         # this part looks like it belongs in CopyGeneratorLoss
         if self.normalize_by_length:
@@ -210,7 +212,7 @@ class CopyGeneratorWithAgendaLossCompute(LossComputeBase):
 
         return loss, stats
 
-    def _stats(self, loss, scores, target, batch):
+    def _stats(self, loss, scores, target, batch, switch_loss, n_copied_tokens):
         """
         Args:
             loss (:obj:`FloatTensor`): the loss computed by the loss criterion.
@@ -236,7 +238,7 @@ class CopyGeneratorWithAgendaLossCompute(LossComputeBase):
             n_correct_agenda += sum(count_max_1_found)
             n_non_padding_agenda += len(items)
 
-        return onmt.utils.Statistics(loss.item(), num_non_padding, num_correct, n_correct_agenda=n_correct_agenda, n_non_padding_agenda=n_non_padding_agenda)
+        return onmt.utils.Statistics(loss.item(), num_non_padding, num_correct, n_correct_agenda=n_correct_agenda, n_non_padding_agenda=n_non_padding_agenda, switch_loss=switch_loss.item(), n_copied_tokens=n_copied_tokens)
 
     def _find_non_padding_items(self, items):
         ret_items = []
