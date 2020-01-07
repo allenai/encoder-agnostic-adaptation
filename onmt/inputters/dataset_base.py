@@ -66,6 +66,8 @@ def _dynamic_dict(example, src_field, tgt_field, pointers=None):
         mask = torch.LongTensor(mask_indices)
         #mask = torch.LongTensor(
         #        [unk_idx] + [src_ex_vocab.stoi[w] for w in tgt] + [unk_idx])
+        # alignment is the size of tgt and it has 0 if a word was not in the source
+        # and the source token (wrt the source vocab) otherwise.
         example["alignment"] = mask
 
         if pointers is not None:
@@ -73,7 +75,13 @@ def _dynamic_dict(example, src_field, tgt_field, pointers=None):
             pointer_entries = [int(entry.split(",")[0]) for entry in pointer_entries]
             mask = torch.LongTensor([unk_idx] + [src_ex_vocab.stoi[w] if i in pointer_entries
                                                  else unk_idx for i, w in enumerate(tgt)] + [unk_idx])
+            # here the alignment is just for words that we want to copy
             example["alignment"] = mask
+            #TODO, for my case, alignment should be like the previous alignment
+            # because I want to copy everything that is in the agenda
+            # wait, is this the agenda or the context?
+            # If indeed agenda, when did I pass the agenda here?
+
             max_len = 0
             line_tuples = []
             for pointer in pointers.split():
@@ -91,6 +99,7 @@ def _dynamic_dict(example, src_field, tgt_field, pointers=None):
             ptrs[ptrs.size(0)-1][0] = len(tgt)
             
             example["ptrs"] = ptrs
+            #ptrs should be (batch_by_tlen (somehow), agenda_len)
         else:
             example["ptrs"] = None
     return src_ex_vocab, example

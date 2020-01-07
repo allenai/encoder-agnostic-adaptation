@@ -6,6 +6,8 @@ from onmt.utils.misc import aeq
 from onmt.utils.loss import LossComputeBase
 from onmt.modules.copy_generator import collapse_copy_scores
 
+FORCE_PTRS = True
+
 class AgendaCopyGenerator(nn.Module):
     """An implementation of pointer-generator networks
     :cite:`DBLP:journals/corr/SeeLM17`.
@@ -91,23 +93,22 @@ class AgendaCopyGenerator(nn.Module):
         p_copy = torch.sigmoid(self.linear_copy(hidden))
         # Probability of not copying: p_{word}(w) * (1 - p(z))
 
-        if self.training and ptrs is not None:
+        if self.training and (ptrs is not None or FORCE_PTRS):
             align_unk = align.eq(0).float().view(-1, 1)
             align_not_unk = align.ne(0).float().view(-1, 1)
             out_prob = torch.mul(prob, align_unk)
-            mul_attn = torch.mul(attn, align_not_unk)
-            mul_attn = torch.mul(mul_attn, ptrs.view(-1, agenda_len).float())
+            mul_attn = torch.mul(attn[:, context_len:], align_not_unk)
+            if not FORCE_PTRS:
+                # This is not used as not sure how ptrs should look like
+                mul_attn = torch.mul(mul_attn, ptrs.view(-1, agenda_len).float())
         else:
             out_prob = torch.mul(prob, 1 - p_copy)
-
             # Mask disallowed copys
             if tags is not None:
                 mul_attn = torch.mul(attn[:, context_len:], tags.t())*2
             else:
                 mul_attn = attn[:, context_len:]
-
             mul_attn = torch.mul(mul_attn, p_copy)
-
         copy_prob = torch.bmm(
             mul_attn.view(-1, batch, agenda_len).transpose(0, 1),
             src_map.transpose(0, 1)
@@ -132,7 +133,7 @@ class CopyGeneratorWithAgendaLossCompute(LossComputeBase):
             raise AssertionError("using -copy_attn you need to pass in "
                                  "-dynamic_dict during preprocess stage.")
 
-        ptrs = batch.ptrs[range_[0] + 1: range_[1]] if self.ptrs_loss else None
+        ptrs = batch.ptrs[range_[0] + 1: range_[1]] if hasattr(batch, 'ptrs') else None
 
         ret_dict= {
             "output": output,
@@ -169,6 +170,7 @@ class CopyGeneratorWithAgendaLossCompute(LossComputeBase):
 
         # ptr stuff
         if self.ptrs_loss:
+            # align needs to be bigger than 1 to be encouraged.
             switch_loss = self.switch_loss_criterion(p_copy, align.ne(0).float().view(-1, 1))
 
         # this block does not depend on the loss value computed above
